@@ -24,6 +24,7 @@ export function ContributionForm({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ContributionValues>({
     resolver: zodResolver(adjustSchema),
@@ -43,12 +44,21 @@ export function ContributionForm({
   return (
     <form onSubmit={handleSubmit(submit)} noValidate>
       <Field label="Starting month" error={errors.month?.message}>
-        <input type="month" min={plan.start} {...register('month')} />
+        <input type="month" readOnly min={plan.start} {...register('month')} />
       </Field>
       <Field label="Apply change to">
-        <select {...register('scope')}>
+        <select
+          {...register('scope', {
+            onChange: (event) => {
+              if (event.target.value === 'reset') {
+                setValue('amount', scheduled(plan, chosen), {
+                  shouldValidate: true,
+                });
+              }
+            },
+          })}
+        >
           <option value="month">This month only</option>
-          <option value="ongoing">From this month onward</option>
           <option value="reset">Remove this month’s adjustment</option>
         </select>
       </Field>
@@ -68,14 +78,17 @@ export function ContributionForm({
         <span>
           {hasRecords
             ? 'This month has Saving records. They take precedence; edit those records to change its contribution.'
-            : scope === 'ongoing'
-              ? 'Changes the schedule until its next scheduled change. Existing month adjustments remain in place.'
-              : scope === 'reset'
-                ? 'The scheduled amount will apply again unless Saving records exist.'
-                : `Scheduled contribution: ${money(scheduled(plan, chosen))} MMK. Only this month’s contribution will change.`}
+            : scope === 'reset'
+              ? 'The scheduled amount will apply again unless Saving records exist.'
+              : `Scheduled contribution: ${money(scheduled(plan, chosen))} MMK. Only this month’s contribution will change.`}
         </span>
       </div>
-      <FormActions busy={isSubmitting} error={error} cancel={cancel} />
+      <FormActions
+        busy={isSubmitting}
+        error={error}
+        cancel={cancel}
+        disabled={hasRecords}
+      />
     </form>
   );
 }

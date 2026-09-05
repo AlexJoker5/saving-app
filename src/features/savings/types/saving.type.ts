@@ -40,3 +40,8 @@ export interface MonthRow {
   closing: number;
   mode: 'Recorded' | 'Adjusted' | 'Automatic';
 }
+
+export interface ContributionEditor {
+  month: string;
+  revision: number;
+}

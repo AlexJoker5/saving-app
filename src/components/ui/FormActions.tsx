@@ -2,6 +2,7 @@ import { AppIcon } from './AppIcon';
 
 interface FormActionsProps {
   busy: boolean;
+  disabled?: boolean;
   error: string;
   label?: string;
   cancel: () => void;
@@ -9,6 +10,7 @@ interface FormActionsProps {
 
 export function FormActions({
   busy,
+  disabled = false,
   error,
   label = 'Save',
   cancel,
@@ -21,10 +23,15 @@ export function FormActions({
         </p>
       )}
       <div className="form-end">
-        <button type="button" className="button secondary" onClick={cancel}>
+        <button
+          type="button"
+          className="button secondary"
+          disabled={busy}
+          onClick={cancel}
+        >
           Cancel
         </button>
-        <button className="button" disabled={busy}>
+        <button className="button" disabled={busy || disabled}>
           {busy ? 'Saving…' : label}
           <AppIcon name="arrow-right" size={17} />
         </button>

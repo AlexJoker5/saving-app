@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exampleState } from '../../workspace/data/example-workspace';
 import { goalForecast } from '../../goals/utils/goal.utils';
-import { balanceAt, timeline } from './saving.utils';
+import { balanceAt, changeContribution, timeline } from './saving.utils';
 import { dateSchema, moneySchema } from '../../../lib/validation';
 
 describe('savings calculations', () => {
@@ -55,5 +55,95 @@ describe('savings calculations', () => {
     expect(moneySchema.safeParse(100.5).success).toBe(false);
     expect(moneySchema.safeParse(-1).success).toBe(false);
     expect(moneySchema.safeParse(0).success).toBe(true);
+  });
+});
+
+describe('monthly contribution changes', () => {
+  it('saves a zero adjustment, carries the difference forward, and leaves snapshots untouched', () => {
+    const original = exampleState();
+    const before = structuredClone(original);
+    const next = changeContribution(original, original.mainId, {
+      month: '2026-09',
+      amount: 0,
+      scope: 'month',
+    });
+
+    expect(original).toEqual(before);
+    expect(next.plans.slice(1)).toEqual(before.plans.slice(1));
+    expect(next.expenses).toEqual(before.expenses);
+    expect(timeline(next.plans[0], '2026-10').slice(2)).toMatchObject([
+      { regular: 0, mode: 'Adjusted', closing: 60000 },
+      { regular: 350000, mode: 'Automatic', closing: 610000 },
+    ]);
+  });
+
+  it('resets an adjustment to the schedule without changing other months', () => {
+    const state = exampleState();
+    state.plans[0].overrides = { '2026-09': 0, '2026-10': 10 };
+    const next = changeContribution(state, state.mainId, {
+      month: '2026-09',
+      amount: 0,
+      scope: 'reset',
+    });
+
+    expect(next.plans[0].overrides).toEqual({ '2026-10': 10 });
+    expect(timeline(next.plans[0], '2026-09').at(-1)).toMatchObject({
+      regular: 350000,
+      mode: 'Automatic',
+      closing: 410000,
+    });
+  });
+
+  it('rejects changes hidden by Saving records, including resets', () => {
+    const state = exampleState();
+    state.plans[0].entries.push({
+      id: 'saving-record',
+      date: '2026-09-30',
+      kind: 'contribution',
+      amount: 500,
+      note: 'Saving',
+      expenseId: 'expense-saving',
+    });
+    for (const scope of ['month', 'reset'] as const) {
+      expect(() =>
+        changeContribution(state, state.mainId, {
+          month: '2026-09',
+          amount: 0,
+          scope,
+        }),
+      ).toThrow('Saving records');
+    }
+  });
+
+  it('rejects invalid amounts, dates before the plan, missing plans, and unwired schedule changes', () => {
+    const state = exampleState();
+    expect(() =>
+      changeContribution(state, state.mainId, {
+        month: '2026-06',
+        amount: 1,
+        scope: 'month',
+      }),
+    ).toThrow('start month');
+    expect(() =>
+      changeContribution(state, 'missing', {
+        month: '2026-09',
+        amount: 1,
+        scope: 'month',
+      }),
+    ).toThrow('not be found');
+    expect(() =>
+      changeContribution(state, state.mainId, {
+        month: '2026-09',
+        amount: 1.5,
+        scope: 'month',
+      }),
+    ).toThrow();
+    expect(() =>
+      changeContribution(state, state.mainId, {
+        month: '2026-09',
+        amount: 1,
+        scope: 'ongoing',
+      }),
+    ).toThrow('not available');
   });
 });

@@ -12,11 +12,13 @@ export function Modal({ title, description, children, close }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
-    ref.current?.showModal();
+    const dialog = ref.current;
+    dialog?.showModal();
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     return () => {
+      dialog?.close();
       document.body.style.overflow = overflow;
       previous?.focus();
     };

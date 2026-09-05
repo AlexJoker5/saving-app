@@ -1,9 +1,14 @@
 import { useEffect } from 'react';
 import useSWR from 'swr';
 import type { AppState, WorkspaceRepository } from '../types/workspace.type';
+import { LocalWorkspaceRepository } from '../repositories/local-workspace-repository';
 import { WorkspaceConflictError } from '../repositories/workspace-repository';
 
-export function useWorkspace(repository: WorkspaceRepository) {
+const localRepository = new LocalWorkspaceRepository();
+
+export function useWorkspace(
+  repository: WorkspaceRepository = localRepository,
+) {
   const result = useSWR(repository.key, () => repository.read(), {
     revalidateOnFocus: true,
     shouldRetryOnError: false,
@@ -12,8 +17,8 @@ export function useWorkspace(repository: WorkspaceRepository) {
 
   useEffect(() => {
     const revalidate = (event: StorageEvent) => {
-      if (event.key === repository.key) {
-        void mutate();
+      if (event.key === repository.key || event.key === null) {
+        void mutate().catch(() => undefined);
       }
     };
 
@@ -22,23 +27,47 @@ export function useWorkspace(repository: WorkspaceRepository) {
     return () => window.removeEventListener('storage', revalidate);
   }, [repository.key, mutate]);
 
-  const commit = async (update: (state: AppState) => AppState) => {
+  const commit = async (
+    update: (state: AppState) => AppState,
+    expectedRevision: number,
+    onConflict: (latestRevision: number) => void,
+  ) => {
     if (!result.data) {
       throw new Error('Wait for your workspace to finish loading.');
     }
 
+    if (result.error) {
+      throw new Error(
+        'Reload your workspace successfully before saving changes.',
+      );
+    }
+
     try {
       const next = update(result.data.state);
-      const snapshot = await repository.save(next, result.data.revision);
+      const snapshot = await repository.save(next, expectedRevision);
       await mutate(snapshot, { revalidate: false });
     } catch (error) {
       if (error instanceof WorkspaceConflictError) {
-        await mutate();
+        try {
+          const latest = await mutate();
+          if (latest) {
+            onConflict(latest.revision);
+          }
+        } catch {
+          throw new Error(
+            'Your workspace changed, but the latest data could not be loaded. Try loading it again before saving.',
+          );
+        }
       }
 
       throw error;
     }
   };
 
-  return { ...result, data: result.data?.state, commit };
+  return {
+    ...result,
+    data: result.data?.state,
+    revision: result.data?.revision ?? 0,
+    commit,
+  };
 }

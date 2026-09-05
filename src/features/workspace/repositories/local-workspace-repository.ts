@@ -13,10 +13,10 @@ const STORAGE_KEY = 'saving.workspace.v1';
 export class LocalWorkspaceRepository implements WorkspaceRepository {
   readonly key = STORAGE_KEY;
 
-  constructor(private readonly storage: Storage) {}
+  constructor(private readonly storage?: Storage) {}
 
   async read(): Promise<WorkspaceSnapshot> {
-    const raw = this.storage.getItem(this.key);
+    const raw = (this.storage ?? window.localStorage).getItem(this.key);
 
     if (!raw) {
       return { state: exampleState(), revision: 0 };
@@ -55,7 +55,10 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         revision: current.revision + 1,
       };
 
-      this.storage.setItem(this.key, JSON.stringify(snapshot));
+      (this.storage ?? window.localStorage).setItem(
+        this.key,
+        JSON.stringify(snapshot),
+      );
 
       return snapshot;
     };

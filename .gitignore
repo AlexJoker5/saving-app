@@ -46,10 +46,8 @@ Desktop.ini
 *.md
 !README.md
 
-# Formatting configuration
-.prettierignore
-.prettierrc.json
-.editorconfig
-
 # Documentation folder
 /docs/
+
+# Local Vercel project settings
+.vercel/

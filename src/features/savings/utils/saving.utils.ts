@@ -1,4 +1,6 @@
-import type { MonthRow } from '../types/saving.type';
+import { adjustSchema } from '../schema/saving.schema';
+import type { AppState } from '../../workspace/types/workspace.type';
+import type { ContributionValues, MonthRow } from '../types/saving.type';
 import type { Plan } from '../../plans/types/plan.type';
 import { addMonths, today } from '../../../lib/dates';
 
@@ -51,4 +53,44 @@ export function timeline(plan: Plan, end: string, cutoff?: string): MonthRow[] {
 }
 export function balanceAt(plan: Plan, date = today()) {
   return timeline(plan, date.slice(0, 7), date).at(-1)?.closing ?? plan.opening;
+}
+
+export function changeContribution(
+  state: AppState,
+  planId: string,
+  values: ContributionValues,
+): AppState {
+  const { month, amount, scope } = adjustSchema.parse(values);
+  const plan = state.plans.find((item) => item.id === planId);
+  if (!plan) {
+    throw new Error('The savings plan could not be found.');
+  }
+  if (month < plan.start) {
+    throw new Error('Choose a month on or after your savings start month.');
+  }
+  if (scope === 'ongoing') {
+    throw new Error('Ongoing schedule changes are not available yet.');
+  }
+  if (
+    plan.entries.some(
+      (entry) => entry.kind === 'contribution' && entry.date.startsWith(month),
+    )
+  ) {
+    throw new Error(
+      'Saving records determine this month’s contribution. Edit those records to change it.',
+    );
+  }
+  const overrides = { ...plan.overrides };
+  if (scope === 'reset') {
+    delete overrides[month];
+  } else {
+    overrides[month] = amount;
+  }
+
+  return {
+    ...state,
+    plans: state.plans.map((item) =>
+      item.id === planId ? { ...item, overrides } : item,
+    ),
+  };
 }

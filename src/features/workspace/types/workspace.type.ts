@@ -13,3 +13,13 @@ export interface WorkspaceRepository {
   read(): Promise<WorkspaceSnapshot>;
   save(state: AppState, expectedRevision: number): Promise<WorkspaceSnapshot>;
 }
+
+export interface WorkspaceContext {
+  state: AppState;
+  revision: number;
+  commit: (
+    update: (state: AppState) => AppState,
+    expectedRevision: number,
+    onConflict: (latestRevision: number) => void,
+  ) => Promise<void>;
+}

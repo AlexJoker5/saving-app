@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+artifacts
+playwright-report
+test-results
+blob-report
+.vite
+.vite-temp
+dev-dist
+package-lock.json
+SAVING_APP_HANDOFF.md
+public/icons.json
+supabase/migrations
