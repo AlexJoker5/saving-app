@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Build output and caches
+dist/
+dist-ssr/
+dev-dist/
+.vite/
+.vite-temp/
+*.tsbuildinfo
+.eslintcache
+
+# Test output and generated artifacts
+coverage/
+.nyc_output/
+playwright-report/
+playwright/.cache/
+test-results/
+blob-report/
+artifacts/
+
+# Logs
+*.log
+
+# Local environment variables
+.env
+.env.*
+!.env.example
+
+# Local editor files (keep shared VS Code configuration)
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Operating system files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Markdown documentation
+*.md
+!README.md
+
+# Formatting configuration
+.prettierignore
+.prettierrc.json
+.editorconfig
+
+# Documentation folder
+/docs/
