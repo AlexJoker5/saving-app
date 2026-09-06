@@ -21,6 +21,7 @@ export function WorkspacePage() {
           <NavLink to={routePaths.expenses}>Expenses</NavLink>
           <NavLink to={routePaths.plans}>Plans</NavLink>
           <NavLink to={routePaths.goals}>Goals</NavLink>
+          <NavLink to={routePaths.settings}>Settings</NavLink>
           {data?.demo && (
             <NavLink to={routePaths.setup}>Set up my savings</NavLink>
           )}

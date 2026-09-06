@@ -5,4 +5,5 @@ export const routePaths = {
   plans: '/plans',
   goals: '/goals',
   setup: '/setup',
+  settings: '/settings',
 } as const;

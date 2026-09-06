@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
 import { ExpenseForm } from './components/ExpenseForm';
+import { labels } from './schema/expense.schema';
 import {
   deleteExpense,
   expenseTotals,
@@ -35,13 +36,39 @@ export function ExpensesPage() {
     .filter((expense) => expense.date.startsWith(month))
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
   const totals = expenseTotals(expenses);
+  const label = labels.find((value) => value === search.get('label')) ?? '';
+  const requestedSource = search.get('source');
+  const source =
+    requestedSource === 'budget' || requestedSource === 'savings'
+      ? requestedSource
+      : '';
+  const hasFilters = label !== '' || source !== '';
+  const visibleExpenses = expenses.filter(
+    (expense) =>
+      (!label || expense.label === label) &&
+      (!source || expense.source === source),
+  );
+  const updateSearch = (changes: Record<string, string | null>) => {
+    setSearch((current) => {
+      const next = new URLSearchParams(current);
+      for (const [key, value] of Object.entries(changes)) {
+        if (value) {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+      }
+
+      return next;
+    });
+  };
   const deleting =
     editor?.mode === 'delete'
       ? state.expenses.find((expense) => expense.id === editor.expense.id)
       : undefined;
   const selectMonth = (next: string) => {
     if (monthSchema.safeParse(next).success && next >= main.start) {
-      setSearch({ month: next });
+      updateSearch({ month: next });
       setMessage('');
     }
   };
@@ -124,7 +151,8 @@ export function ExpensesPage() {
           Spending budget: {money(state.budget)} MMK per month. Going over
           budget never withdraws savings automatically. Totals include planned
           records for this month; Saving records are shown separately from
-          spending.
+          spending. These totals cover the full month, including records hidden
+          by the filters below.
         </p>
       </section>
       <section className="panel" aria-labelledby="expense-records-heading">
@@ -141,11 +169,70 @@ export function ExpensesPage() {
             Add record
           </button>
         </div>
+        <div
+          className="form-grid"
+          role="group"
+          aria-label="Filter expense records"
+        >
+          <label className="field">
+            <span>Label</span>
+            <select
+              value={label}
+              onChange={(event) => {
+                updateSearch({ label: event.target.value });
+                setMessage('');
+              }}
+            >
+              <option value="">All labels</option>
+              {labels.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Paid from</span>
+            <select
+              value={source}
+              onChange={(event) => {
+                updateSearch({ source: event.target.value });
+                setMessage('');
+              }}
+            >
+              <option value="">All sources</option>
+              <option value="budget">This month’s budget</option>
+              <option value="savings">Savings</option>
+            </select>
+          </label>
+        </div>
+        <div className="section-head">
+          <p role="status" className="muted">
+            Showing {visibleExpenses.length} of {expenses.length} records for{' '}
+            {monthName(month)}.
+          </p>
+          {hasFilters && (
+            <button
+              className="button secondary"
+              onClick={() => {
+                updateSearch({ label: null, source: null });
+                setMessage('');
+              }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
         {expenses.length === 0 ? (
           <p className="notice">No records for this month yet.</p>
+        ) : visibleExpenses.length === 0 ? (
+          <p className="notice">
+            No records match these filters. Change a filter or clear filters to
+            see all records for this month.
+          </p>
         ) : (
           <ul className="entry-list expense-list">
-            {expenses.map((expense) => (
+            {visibleExpenses.map((expense) => (
               <li key={expense.id}>
                 <div className="entry-details">
                   <strong>{expense.note || expense.label}</strong>
@@ -312,9 +399,18 @@ export function ExpensesPage() {
                     editor.revision,
                     onConflict,
                   );
-                  setSearch({ month: expense.date.slice(0, 7) });
+                  const hiddenByFilters =
+                    (label !== '' && expense.label !== label) ||
+                    (source !== '' && expense.source !== source);
+                  updateSearch({
+                    month: expense.date.slice(0, 7),
+                    ...(hiddenByFilters ? { label: null, source: null } : {}),
+                  });
                   finish(
-                    'Record saved in this browser. Expenses and linked Main savings are up to date.',
+                    'Record saved in this browser. Expenses and linked Main savings are up to date.' +
+                      (hiddenByFilters
+                        ? ' Filters cleared to show the saved record.'
+                        : ''),
                   );
                 } finally {
                   setBusy(false);
