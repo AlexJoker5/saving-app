@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
+import { routePaths } from '../../routes/routePaths';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
 import { SavingsEntries } from './components/SavingsEntries';
 import { ContributionForm } from './components/ContributionForm';
@@ -15,14 +17,25 @@ import type { ContributionEditor } from './types/saving.type';
 
 export function SavingsPage() {
   const { state, revision, commit } = useWorkspaceContext();
+  const [search, setSearch] = useSearchParams();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [editing, setEditing] = useState<ContributionEditor | null>(null);
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
-  const plan = state.plans.find((item) => item.id === state.mainId);
+  const plan = state.plans.find(
+    (item) => item.id === (search.get('plan') ?? state.mainId),
+  );
+  const editingPlan = editing
+    ? state.plans.find((item) => item.id === editing.planId)
+    : undefined;
 
   if (!plan) {
-    return <p role="alert">Your Main savings plan is missing.</p>;
+    return (
+      <p role="alert">
+        This savings plan is unavailable.{' '}
+        <Link to={routePaths.plans}>View your plans.</Link>
+      </p>
+    );
   }
 
   const month = selectedMonth < plan.start ? plan.start : selectedMonth;
@@ -49,10 +62,20 @@ export function SavingsPage() {
     <>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Main plan · {plan.name}</p>
+          <p className="eyebrow">
+            {plan.id === state.mainId ? 'Main plan' : 'Independent plan'} ·{' '}
+            {plan.name}
+          </p>
           <h1>Your savings</h1>
         </div>
       </div>
+      {plan.id !== state.mainId && (
+        <p className="notice">
+          You’re editing an independent plan. These changes do not change Main
+          or your expense records.{' '}
+          <Link to={routePaths.plans}>Compare plans</Link>
+        </p>
+      )}
       <section className="balance-card" aria-label="Current savings">
         <p>
           {plan.start > currentMonth()
@@ -149,15 +172,29 @@ export function SavingsPage() {
         </p>
         {row.mode === 'Recorded' ? (
           <p className="notice">
-            Saving records determine this month’s contribution. Editing those
-            records will be available with the expenses flow.
+            {plan.id === state.mainId ? (
+              <>
+                Saving records determine this month’s contribution.{' '}
+                <Link to={`${routePaths.expenses}?month=${month}`}>
+                  Manage this month’s records in Expenses.
+                </Link>
+              </>
+            ) : (
+              <>
+                Copied Saving records determine this month’s contribution.
+                Current expenses update Main only.{' '}
+                <Link to={routePaths.plans}>
+                  Review connected records when making this plan Main.
+                </Link>
+              </>
+            )}
           </p>
         ) : (
           <button
             className="button"
             onClick={() => {
               setMessage('');
-              setEditing({ month, revision, scope: 'month' });
+              setEditing({ month, revision, scope: 'month', planId: plan.id });
             }}
           >
             Adjust this month
@@ -173,7 +210,7 @@ export function SavingsPage() {
           className="button secondary"
           onClick={() => {
             setMessage('');
-            setEditing({ month, revision, scope: 'ongoing' });
+            setEditing({ month, revision, scope: 'ongoing', planId: plan.id });
           }}
         >
           Change ongoing saving
@@ -185,10 +222,10 @@ export function SavingsPage() {
         )}
       </section>
       <SavingsEntries
-        key={plan.id}
         plan={plan}
         month={month}
-        onSaved={(savedMonth) => {
+        onSaved={(savedMonth, savedPlanId) => {
+          setSearch({ plan: savedPlanId });
           setSelectedMonth(savedMonth);
           setMessage('');
         }}
@@ -202,35 +239,45 @@ export function SavingsPage() {
           }
           close={closeEditor}
         >
-          <ContributionForm
-            plan={plan}
-            initialScope={editing.scope}
-            month={editing.month}
-            cancel={closeEditor}
-            save={async (values) => {
-              setSaving(true);
-              try {
-                await commit(
-                  (current) => changeContribution(current, plan.id, values),
-                  editing.revision,
-                  (latestRevision) => {
-                    setEditing((current) =>
-                      current ? { ...current, revision: latestRevision } : null,
-                    );
-                  },
-                );
-                setSelectedMonth(values.month);
-                setEditing(null);
-                setMessage(
-                  values.scope === 'ongoing'
-                    ? `Saved in this browser: ongoing schedule from ${monthName(values.month)}. Month adjustments and Saving records still take precedence.`
-                    : `Saved in this browser for ${monthName(values.month)}.`,
-                );
-              } finally {
-                setSaving(false);
-              }
-            }}
-          />
+          {editingPlan ? (
+            <ContributionForm
+              plan={editingPlan}
+              initialScope={editing.scope}
+              month={editing.month}
+              cancel={closeEditor}
+              save={async (values) => {
+                setSaving(true);
+                try {
+                  await commit(
+                    (current) =>
+                      changeContribution(current, editing.planId, values),
+                    editing.revision,
+                    (latestRevision) => {
+                      setEditing((current) =>
+                        current
+                          ? { ...current, revision: latestRevision }
+                          : null,
+                      );
+                    },
+                  );
+                  setSearch({ plan: editing.planId });
+                  setSelectedMonth(values.month);
+                  setEditing(null);
+                  setMessage(
+                    values.scope === 'ongoing'
+                      ? `Saved in this browser: ongoing schedule from ${monthName(values.month)}. Month adjustments and Saving records still take precedence.`
+                      : `Saved in this browser for ${monthName(values.month)}.`,
+                  );
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            />
+          ) : (
+            <p role="alert">
+              This plan no longer exists. Close the form and review your plans.
+            </p>
+          )}
         </Modal>
       )}
     </>

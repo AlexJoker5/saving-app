@@ -13,7 +13,7 @@ export const labels = [
 ] as const;
 export const expenseSchema = z
   .object({
-    id: z.string(),
+    id: z.string().min(1),
     amount: moneySchema.positive('Enter an amount greater than zero'),
     date: dateSchema,
     label: z.enum(labels),

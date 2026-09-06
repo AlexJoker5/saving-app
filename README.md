@@ -3,7 +3,7 @@
 A React, Vite, and TypeScript project for savings, expenses, independent plans,
 and goal forecasts.
 
-**Current status:** local setup and savings are connected. The home route opens
+**Current status:** local setup, savings, expenses, and plan management are connected. The home route opens
 `/savings`, with a monthly breakdown, month navigation, one-month contribution
 adjustments, ongoing schedule changes, reset to the schedule, and direct entry
 create/edit/delete. Ongoing changes apply from the selected month until the next
@@ -11,8 +11,20 @@ schedule, preserving month adjustments and Saving-record precedence.
 Extra additions and withdrawals appear in the selected month with planned-date
 labels. Deletion requires confirmation; expense-linked records are read-only here. `/setup` replaces the labelled example
 workspace with your own starting balance, monthly saving, and spending budget.
-Changes persist in this browser with revision-conflict protection. Expense, plan,
-and goal screens, authentication, and cloud persistence remain unfinished.
+Changes persist in this browser with revision-conflict protection.
+
+`/expenses` lists monthly records, separates budget spending, savings spending,
+and recorded saving, and supports create/edit/delete through one Paid from form.
+Savings-funded expenses and Saving-labelled records update their Main entries
+in the same saved workspace. Deletion requires confirmation.
+
+`/plans` supports independent snapshots, rename/delete, month-end comparison,
+and Main promotion. View/edit opens a chosen plan in the savings page. Main
+cannot be deleted. Promotion reviews differences in linked expenses and requires
+explicit consent to reconcile them, preserving the former Main as an independent
+plan. Later expense changes affect Main only.
+
+Goal screens, settings updates, authentication, and cloud persistence remain unfinished.
 
 ## Project documentation
 

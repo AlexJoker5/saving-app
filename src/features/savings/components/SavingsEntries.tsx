@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router';
+import { routePaths } from '../../../routes/routePaths';
 import { useWorkspaceContext } from '../../workspace/hooks/useWorkspaceContext';
 import { Modal } from '../../../components/ui/Modal';
 import { FormActions } from '../../../components/ui/FormActions';
@@ -17,7 +19,7 @@ import type {
 
 export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const { revision, commit } = useWorkspaceContext();
+  const { state, revision, commit } = useWorkspaceContext();
   const [editor, setEditor] = useState<MoneyEntryEditor | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -25,10 +27,13 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
   const entries = plan.entries
     .filter((entry) => entry.date.startsWith(month))
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  const editingPlan = editor
+    ? state.plans.find((item) => item.id === editor.planId)
+    : undefined;
   const kind = editor?.mode === 'create' ? editor.kind : editor?.entry.kind;
   const entryToDelete =
     editor?.mode === 'delete'
-      ? plan.entries.find((entry) => entry.id === editor.entry.id)
+      ? editingPlan?.entries.find((entry) => entry.id === editor.entry.id)
       : undefined;
   const title =
     editor?.mode === 'delete'
@@ -68,14 +73,21 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
         <div className="entry-actions">
           <button
             className="button"
-            onClick={() => open({ mode: 'create', kind: 'extra', revision })}
+            onClick={() =>
+              open({ mode: 'create', kind: 'extra', revision, planId: plan.id })
+            }
           >
             Add extra money
           </button>
           <button
             className="button secondary"
             onClick={() =>
-              open({ mode: 'create', kind: 'withdrawal', revision })
+              open({
+                mode: 'create',
+                kind: 'withdrawal',
+                revision,
+                planId: plan.id,
+              })
             }
           >
             Add withdrawal
@@ -114,8 +126,15 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
                 </p>
                 {!isDirectEntry(entry) && (
                   <small className="muted">
-                    Managed in expenses · Editing will be available with the
-                    expenses flow.
+                    {plan.id === state.mainId
+                      ? 'Managed in expenses'
+                      : 'Copied expense record; current expenses update Main only'}{' '}
+                    ·{' '}
+                    <Link
+                      to={`${routePaths.expenses}?month=${entry.date.slice(0, 7)}`}
+                    >
+                      View month in expenses
+                    </Link>
                   </small>
                 )}
               </div>
@@ -128,14 +147,18 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
                   <button
                     className="button secondary"
                     aria-label={`Edit ${entry.note || 'entry'}`}
-                    onClick={() => open({ mode: 'edit', entry, revision })}
+                    onClick={() =>
+                      open({ mode: 'edit', entry, revision, planId: plan.id })
+                    }
                   >
                     Edit
                   </button>
                   <button
                     className="button secondary danger"
                     aria-label={`Delete ${entry.note || 'entry'}`}
-                    onClick={() => open({ mode: 'delete', entry, revision })}
+                    onClick={() =>
+                      open({ mode: 'delete', entry, revision, planId: plan.id })
+                    }
                   >
                     Delete
                   </button>
@@ -151,8 +174,12 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
         </p>
       )}
       {editor && (
-        <Modal title={title} close={close}>
-          {editor.mode === 'delete' ? (
+        <Modal title={title} description={editingPlan?.name} close={close}>
+          {!editingPlan ? (
+            <p role="alert">
+              This plan no longer exists. Close the form to review your plans.
+            </p>
+          ) : editor.mode === 'delete' ? (
             <form
               onSubmit={async (event) => {
                 event.preventDefault();
@@ -164,10 +191,11 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
                 try {
                   await commit(
                     (state) =>
-                      deleteMoneyEntry(state, plan.id, editor.entry.id),
+                      deleteMoneyEntry(state, editor.planId, editor.entry.id),
                     editor.revision,
                     onConflict,
                   );
+                  onSaved(month, editor.planId);
                   finish();
                   setMessage(
                     'Entry deleted. Balances have been recalculated and saved in this browser.',
@@ -215,7 +243,7 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
               entry={editor.mode === 'edit' ? editor.entry : undefined}
               kind={editor.mode === 'create' ? editor.kind : editor.entry.kind}
               month={month}
-              start={plan.start}
+              start={editingPlan.start}
               cancel={close}
               save={async (entry) => {
                 setBusy(true);
@@ -224,14 +252,14 @@ export function SavingsEntries({ plan, month, onSaved }: SavingsEntriesProps) {
                     (state) =>
                       saveMoneyEntry(
                         state,
-                        plan.id,
+                        editor.planId,
                         entry,
                         editor.mode === 'edit' ? editor.entry.id : undefined,
                       ),
                     editor.revision,
                     onConflict,
                   );
-                  onSaved(entry.date.slice(0, 7));
+                  onSaved(entry.date.slice(0, 7), editor.planId);
                   finish();
                   setMessage(
                     'Entry saved in this browser. Balances have been recalculated.',

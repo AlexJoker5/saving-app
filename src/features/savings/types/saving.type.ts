@@ -44,6 +44,7 @@ export interface MonthRow {
 }
 
 export interface ContributionEditor {
+  planId: string;
   scope: 'month' | 'ongoing';
   month: string;
   revision: number;
@@ -54,10 +55,10 @@ export type DirectEntry = z.infer<typeof directEntrySchema>;
 export interface SavingsEntriesProps {
   plan: Plan;
   month: string;
-  onSaved: (month: string) => void;
+  onSaved: (month: string, planId: string) => void;
 }
 
-export type MoneyEntryEditor = { revision: number } & (
+export type MoneyEntryEditor = { revision: number; planId: string } & (
   | { mode: 'create'; kind: DirectEntry['kind'] }
   | { mode: 'edit' | 'delete'; entry: DirectEntry }
 );

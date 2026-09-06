@@ -55,7 +55,9 @@ createServer(async (request, response) => {
     }
     return;
   }
-  if (['/', '/index.html', '/savings', '/setup'].includes(pathname)) {
+  if (
+    ['/', '/index.html', '/savings', '/setup', '/expenses'].includes(pathname)
+  ) {
     response.setHeader('Content-Type', 'text/html');
     response.end(releases[release === 'broken' ? 'a' : release].html);
     return;

@@ -18,6 +18,8 @@ export function WorkspacePage() {
         </Link>
         <nav aria-label="Main navigation">
           <NavLink to={routePaths.savings}>Savings</NavLink>
+          <NavLink to={routePaths.expenses}>Expenses</NavLink>
+          <NavLink to={routePaths.plans}>Plans</NavLink>
           {data?.demo && (
             <NavLink to={routePaths.setup}>Set up my savings</NavLink>
           )}
