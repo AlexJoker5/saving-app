@@ -5,7 +5,12 @@ import { ContributionForm } from './components/ContributionForm';
 import { Modal } from '../../components/ui/Modal';
 import { addMonths, currentMonth, monthName, today } from '../../lib/dates';
 import { money } from '../../lib/money';
-import { balanceAt, changeContribution, timeline } from './utils/saving.utils';
+import {
+  balanceAt,
+  changeContribution,
+  nextSchedule,
+  timeline,
+} from './utils/saving.utils';
 import type { ContributionEditor } from './types/saving.type';
 
 export function SavingsPage() {
@@ -22,6 +27,7 @@ export function SavingsPage() {
 
   const month = selectedMonth < plan.start ? plan.start : selectedMonth;
   const row = timeline(plan, month).at(-1);
+  const upcoming = nextSchedule(plan, month);
   const period =
     month < currentMonth()
       ? 'Past month'
@@ -151,12 +157,27 @@ export function SavingsPage() {
             className="button"
             onClick={() => {
               setMessage('');
-              setEditing({ month, revision });
+              setEditing({ month, revision, scope: 'month' });
             }}
           >
             Adjust this month
           </button>
         )}
+        <p className="muted">
+          Scheduled saving: {money(row.scheduled)} MMK per month.
+          {upcoming
+            ? ` Next change: ${money(upcoming.amount)} MMK from ${monthName(upcoming.month)}.`
+            : ' No later schedule change is set.'}
+        </p>
+        <button
+          className="button secondary"
+          onClick={() => {
+            setMessage('');
+            setEditing({ month, revision, scope: 'ongoing' });
+          }}
+        >
+          Change ongoing saving
+        </button>
         {message && (
           <p role="status" className="notice">
             {message}
@@ -173,9 +194,17 @@ export function SavingsPage() {
         }}
       />
       {editing && (
-        <Modal title="Adjust monthly saving" close={closeEditor}>
+        <Modal
+          title={
+            editing.scope === 'ongoing'
+              ? 'Change ongoing saving'
+              : 'Adjust monthly saving'
+          }
+          close={closeEditor}
+        >
           <ContributionForm
             plan={plan}
+            initialScope={editing.scope}
             month={editing.month}
             cancel={closeEditor}
             save={async (values) => {
@@ -193,7 +222,9 @@ export function SavingsPage() {
                 setSelectedMonth(values.month);
                 setEditing(null);
                 setMessage(
-                  `Saved in this browser for ${monthName(values.month)}.`,
+                  values.scope === 'ongoing'
+                    ? `Saved in this browser: ongoing schedule from ${monthName(values.month)}. Month adjustments and Saving records still take precedence.`
+                    : `Saved in this browser for ${monthName(values.month)}.`,
                 );
               } finally {
                 setSaving(false);

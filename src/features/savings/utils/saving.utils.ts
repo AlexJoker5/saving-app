@@ -14,6 +14,11 @@ export const scheduled = (plan: Plan, month: string) =>
     .sort((a, b) => b.month.localeCompare(a.month))
     .find((s) => s.month <= month)?.amount ?? 0;
 
+export const nextSchedule = (plan: Plan, month: string) =>
+  [...plan.schedules]
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .find((schedule) => schedule.month > month);
+
 export function timeline(plan: Plan, end: string, cutoff?: string): MonthRow[] {
   const rows: MonthRow[] = [];
   let balance = plan.opening;
@@ -74,7 +79,17 @@ export function changeContribution(
     throw new Error('Choose a month on or after your savings start month.');
   }
   if (scope === 'ongoing') {
-    throw new Error('Ongoing schedule changes are not available yet.');
+    const schedules = [
+      ...plan.schedules.filter((schedule) => schedule.month !== month),
+      { month, amount },
+    ].sort((a, b) => a.month.localeCompare(b.month));
+
+    return {
+      ...state,
+      plans: state.plans.map((item) =>
+        item.id === planId ? { ...item, schedules } : item,
+      ),
+    };
   }
   if (
     plan.entries.some(

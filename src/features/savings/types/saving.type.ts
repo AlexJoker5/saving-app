@@ -24,6 +24,7 @@ export interface MoneyEntryFormProps {
 }
 
 export interface ContributionFormProps {
+  initialScope: 'month' | 'ongoing';
   plan: Plan;
   month: string;
   save: Save<ContributionValues>;
@@ -43,6 +44,7 @@ export interface MonthRow {
 }
 
 export interface ContributionEditor {
+  scope: 'month' | 'ongoing';
   month: string;
   revision: number;
 }
