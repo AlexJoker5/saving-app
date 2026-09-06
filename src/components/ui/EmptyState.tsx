@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { AppIcon } from './AppIcon';
+import { AppIcon, type AppIconName } from './AppIcon';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: AppIconName;
   title: string;
   children: ReactNode;
 }

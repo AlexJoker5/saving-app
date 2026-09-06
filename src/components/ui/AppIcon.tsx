@@ -1,15 +1,23 @@
-import { Icon } from '@iconify/react';
-import { icons } from '@iconify-json/lucide';
+import { ArrowRight, Info, Link, Sprout, X } from 'lucide-react';
 
-export function AppIcon({ name, size = 20 }: { name: string; size?: number }) {
-  const item = icons.icons[name as keyof typeof icons.icons];
+const icons = {
+  'arrow-right': ArrowRight,
+  info: Info,
+  link: Link,
+  sprout: Sprout,
+  x: X,
+};
 
-  return (
-    <Icon
-      icon={{ ...item, width: 24, height: 24 }}
-      width={size}
-      height={size}
-      aria-hidden="true"
-    />
-  );
+export type AppIconName = keyof typeof icons;
+
+export function AppIcon({
+  name,
+  size = 20,
+}: {
+  name: AppIconName;
+  size?: number;
+}) {
+  const Icon = icons[name];
+
+  return <Icon size={size} aria-hidden="true" focusable="false" />;
 }

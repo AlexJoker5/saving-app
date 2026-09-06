@@ -3,7 +3,7 @@
 A React, Vite, and TypeScript project for savings, expenses, independent plans,
 and goal forecasts.
 
-**Current status:** local setup, savings, expenses, plans, and goals are connected. The home route opens
+**Current status:** local setup, savings, expenses, plans, goals, and settings are connected. The home route opens
 `/savings`, with a monthly breakdown, month navigation, one-month contribution
 adjustments, ongoing schedule changes, reset to the schedule, and direct entry
 create/edit/delete. Ongoing changes apply from the selected month until the next
@@ -16,7 +16,8 @@ Changes persist in this browser with revision-conflict protection.
 `/expenses` lists monthly records, separates budget spending, savings spending,
 and recorded saving, and supports create/edit/delete through one Paid from form.
 Savings-funded expenses and Saving-labelled records update their Main entries
-in the same saved workspace. Deletion requires confirmation.
+in the same saved workspace. Deletion requires confirmation. Label and Paid from
+filters narrow the record list while the summary keeps full-month totals.
 
 `/plans` supports independent snapshots, rename/delete, month-end comparison,
 and Main promotion. View/edit opens a chosen plan in the savings page. Main
@@ -31,7 +32,9 @@ within the displayed forecast range (up to 120 months, limited by the plan's
 reserve or deduct money. A past qualifying date does not confirm affordability
 today. Missing results are labelled as not reached within the forecast range.
 
-Settings updates, authentication, and cloud persistence remain unfinished.
+`/settings` updates the workspace-wide monthly spending budget with revision
+protection. The budget applies to every month. Authentication and cloud
+persistence remain unfinished.
 
 ## Project documentation
 
@@ -76,8 +79,10 @@ boundaries and precedence, storage failures,
 two-tab conflicts, direct entry edits across months, deletion confirmation,
 expense ownership, mobile overflow, and dialog keyboard focus. Screenshots are
 written under `artifacts/`. Run `npm run test:e2e` separately from `npm run check`.
-The current production build warns about a large JavaScript bundle when the shared
-icon component is included; bundle optimization remains follow-up work.
+The shared icon component imports only the supported icons from `lucide-react`.
+Keep new icons explicitly imported and add their names to the typed icon map;
+avoid importing a full icon collection. The optimized main JavaScript bundle
+is approximately 428 kB before compression, below the default build warning threshold.
 
 ## External resources
 
