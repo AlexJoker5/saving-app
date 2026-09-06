@@ -7,6 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['icon.svg'],
       manifest: {
         name: 'Saving — Make room for tomorrow',

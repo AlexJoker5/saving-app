@@ -36,6 +36,7 @@ npm run lint:fix      # Apply available ESLint fixes
 npm run typecheck     # Check strict TypeScript types
 npm test              # Run domain and repository tests
 npm run test:e2e      # Run setup/savings browser tests (requires Google Chrome)
+npm run test:pwa      # Build and test real service-worker upgrades
 npm run build         # Type-check and create a production build
 npm run check         # Run formatting, lint, types, domain tests, and build
 ```
@@ -72,3 +73,24 @@ This version stores data only in each visitor's browser and requires no external
 credentials. It does not upload local savings data to a server.
 
 The handoff documents remain local under the existing Git ignore rules.
+
+## App updates
+
+Production builds check for updates when opened, when returning to the app, when
+connectivity returns, and hourly while visible. Use **Check for updates** at the
+bottom of the page to check manually. When **New version available** appears,
+finish saving open forms, then choose **Update now**. **Later** keeps the current
+version and leaves an **Update available** button for reopening the notice.
+Updating one tab does not automatically reload other tabs or discard their drafts.
+The update code never clears localStorage or rewrites the savings workspace.
+
+Existing installations from before this update flow need to load this version
+once: after it downloads, close all Saving tabs and installed-app windows, then
+reopen the main domain. Do not clear site data to update; that includes saved
+savings. Deployment URLs and the main domain have separate local workspaces.
+
+`npm run test:pwa` serves two releases of the production build on an isolated local
+origin and exercises the real generated service worker. It verifies explicit
+activation, preserved savings, deferred updates, cross-tab drafts, offline reload,
+failed checks, activation retry, and mobile layout. Installed iOS/Android PWA behavior
+still needs device verification.
