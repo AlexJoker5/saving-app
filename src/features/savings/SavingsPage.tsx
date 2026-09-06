@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
+import { SavingsEntries } from './components/SavingsEntries';
 import { ContributionForm } from './components/ContributionForm';
 import { Modal } from '../../components/ui/Modal';
 import { addMonths, currentMonth, monthName, today } from '../../lib/dates';
@@ -162,6 +163,15 @@ export function SavingsPage() {
           </p>
         )}
       </section>
+      <SavingsEntries
+        key={plan.id}
+        plan={plan}
+        month={month}
+        onSaved={(savedMonth) => {
+          setSelectedMonth(savedMonth);
+          setMessage('');
+        }}
+      />
       {editing && (
         <Modal title="Adjust monthly saving" close={closeEditor}>
           <ContributionForm

@@ -40,34 +40,39 @@ export function MoneyEntryForm({
       ...value,
       id: entry?.id ?? id(),
       kind,
-      ...(entry?.expenseId ? { expenseId: entry.expenseId } : {}),
     });
   });
 
   return (
     <form onSubmit={handleSubmit(submit)} noValidate>
-      <Field label="Amount (MMK)" error={errors.amount?.message}>
-        <input
-          className="amount-input"
-          type="number"
-          placeholder="0"
-          {...register('amount', { valueAsNumber: true })}
-        />
-      </Field>
-      <Field label="Date" error={errors.date?.message}>
-        <input type="date" min={start + '-01'} {...register('date')} />
-      </Field>
-      <Field label="Reason" error={errors.note?.message}>
-        <input
-          placeholder={
-            kind === 'extra'
-              ? 'A gift, bonus, or something unexpected'
-              : 'What are you using this money for?'
-          }
-          {...register('note')}
-        />
-      </Field>
-      <FormActions busy={isSubmitting} error={error} cancel={cancel} />
+      <fieldset disabled={isSubmitting}>
+        <Field label="Amount (MMK)" error={errors.amount?.message}>
+          <input
+            className="amount-input"
+            type="number"
+            placeholder="0"
+            {...register('amount', { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Date" error={errors.date?.message}>
+          <input type="date" min={start + '-01'} {...register('date')} />
+        </Field>
+        <Field label="Reason" error={errors.note?.message}>
+          <input
+            placeholder={
+              kind === 'extra'
+                ? 'A gift, bonus, or something unexpected'
+                : 'What are you using this money for?'
+            }
+            {...register('note')}
+          />
+        </Field>
+        <p className="muted">
+          Future-dated entries affect the month-end projection and count toward
+          today’s balance when their date arrives.
+        </p>
+        <FormActions busy={isSubmitting} error={error} cancel={cancel} />
+      </fieldset>
     </form>
   );
 }

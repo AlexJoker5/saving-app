@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import type {
   entrySchema,
+  directEntrySchema,
   moneyEntrySchema,
   adjustSchema,
 } from '../schema/saving.schema';
@@ -14,11 +15,11 @@ export type MoneyEntryValues = z.infer<typeof moneyEntrySchema>;
 export type ContributionValues = z.infer<typeof adjustSchema>;
 
 export interface MoneyEntryFormProps {
-  entry?: Entry;
+  entry?: DirectEntry;
   month: string;
   start: string;
-  kind: Entry['kind'];
-  save: Save<Entry>;
+  kind: DirectEntry['kind'];
+  save: Save<DirectEntry>;
   cancel: () => void;
 }
 
@@ -45,3 +46,16 @@ export interface ContributionEditor {
   month: string;
   revision: number;
 }
+
+export type DirectEntry = z.infer<typeof directEntrySchema>;
+
+export interface SavingsEntriesProps {
+  plan: Plan;
+  month: string;
+  onSaved: (month: string) => void;
+}
+
+export type MoneyEntryEditor = { revision: number } & (
+  | { mode: 'create'; kind: DirectEntry['kind'] }
+  | { mode: 'edit' | 'delete'; entry: DirectEntry }
+);

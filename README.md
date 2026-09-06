@@ -5,7 +5,9 @@ and goal forecasts.
 
 **Current status:** local setup and savings are connected. The home route opens
 `/savings`, with a monthly breakdown, month navigation, one-month contribution
-adjustments, and reset to the schedule. `/setup` replaces the labelled example
+adjustments, reset to the schedule, and direct entry create/edit/delete.
+Extra additions and withdrawals appear in the selected month with planned-date
+labels. Deletion requires confirmation; expense-linked records are read-only here. `/setup` replaces the labelled example
 workspace with your own starting balance, monthly saving, and spending budget.
 Changes persist in this browser with revision-conflict protection. Expense, plan,
 and goal screens, authentication, and cloud persistence remain unfinished.
@@ -48,7 +50,8 @@ do not import React, SWR, or storage implementations.
 Browser tests start an isolated local server on port 4173 and use temporary browser
 contexts, leaving your normal browser data untouched. They cover setup validation,
 reload persistence, contribution adjustments and resets, storage failures,
-two-tab conflicts, mobile overflow, and dialog keyboard focus. Screenshots are
+two-tab conflicts, direct entry edits across months, deletion confirmation,
+expense ownership, mobile overflow, and dialog keyboard focus. Screenshots are
 written under `artifacts/`. Run `npm run test:e2e` separately from `npm run check`.
 The current production build warns about a large JavaScript bundle when the shared
 icon component is included; bundle optimization remains follow-up work.

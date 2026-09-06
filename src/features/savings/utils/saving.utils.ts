@@ -1,6 +1,11 @@
-import { adjustSchema } from '../schema/saving.schema';
+import { adjustSchema, directEntrySchema } from '../schema/saving.schema';
 import type { AppState } from '../../workspace/types/workspace.type';
-import type { ContributionValues, MonthRow } from '../types/saving.type';
+import type {
+  ContributionValues,
+  DirectEntry,
+  Entry,
+  MonthRow,
+} from '../types/saving.type';
 import type { Plan } from '../../plans/types/plan.type';
 import { addMonths, today } from '../../../lib/dates';
 
@@ -91,6 +96,94 @@ export function changeContribution(
     ...state,
     plans: state.plans.map((item) =>
       item.id === planId ? { ...item, overrides } : item,
+    ),
+  };
+}
+
+export function isDirectEntry(entry: Entry): entry is DirectEntry {
+  return (
+    entry.expenseId === undefined &&
+    (entry.kind === 'extra' || entry.kind === 'withdrawal')
+  );
+}
+
+export function saveMoneyEntry(
+  state: AppState,
+  planId: string,
+  input: DirectEntry,
+  editingId?: string,
+): AppState {
+  const entry = directEntrySchema.parse(input);
+  const plan = state.plans.find((item) => item.id === planId);
+  if (!plan) {
+    throw new Error('The savings plan could not be found.');
+  }
+  if (entry.date.slice(0, 7) < plan.start) {
+    throw new Error('Choose a date on or after your savings start month.');
+  }
+  if (editingId !== undefined) {
+    const original = plan.entries.find((item) => item.id === editingId);
+    if (!original) {
+      throw new Error(
+        'This entry no longer exists. Close this form and review the latest entries.',
+      );
+    }
+    if (!isDirectEntry(original)) {
+      throw new Error(
+        'This record belongs to the expenses flow and cannot be changed here.',
+      );
+    }
+    if (entry.id !== editingId || entry.kind !== original.kind) {
+      throw new Error('An edit must keep the entry’s identity and type.');
+    }
+  } else if (plan.entries.some((item) => item.id === entry.id)) {
+    throw new Error(
+      'This entry already exists. Close this form and review the latest entries.',
+    );
+  }
+  const entries =
+    editingId === undefined
+      ? [...plan.entries, entry]
+      : plan.entries.map((item) => (item.id === editingId ? entry : item));
+
+  return {
+    ...state,
+    plans: state.plans.map((item) =>
+      item.id === planId ? { ...item, entries } : item,
+    ),
+  };
+}
+
+export function deleteMoneyEntry(
+  state: AppState,
+  planId: string,
+  entryId: string,
+): AppState {
+  const plan = state.plans.find((item) => item.id === planId);
+  if (!plan) {
+    throw new Error('The savings plan could not be found.');
+  }
+  const entry = plan.entries.find((item) => item.id === entryId);
+  if (!entry) {
+    throw new Error(
+      'This entry no longer exists. Close this dialog and review the latest entries.',
+    );
+  }
+  if (!isDirectEntry(entry)) {
+    throw new Error(
+      'This record belongs to the expenses flow and cannot be deleted here.',
+    );
+  }
+
+  return {
+    ...state,
+    plans: state.plans.map((item) =>
+      item.id === planId
+        ? {
+            ...item,
+            entries: item.entries.filter((record) => record.id !== entryId),
+          }
+        : item,
     ),
   };
 }

@@ -25,3 +25,10 @@ export const adjustSchema = z.object({
   amount: moneySchema,
   scope: z.enum(['month', 'ongoing', 'reset']),
 });
+
+export const directEntrySchema = entrySchema.extend({
+  ...moneyEntrySchema.shape,
+  id: z.string().min(1),
+  kind: z.enum(['extra', 'withdrawal']),
+  expenseId: z.never().optional(),
+});
