@@ -9,3 +9,7 @@ export interface GoalFormProps {
   save: Save<Goal>;
   cancel: () => void;
 }
+
+export type GoalEditor =
+  | { mode: 'create'; revision: number }
+  | { mode: 'edit' | 'delete'; goal: Goal; revision: number };

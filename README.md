@@ -3,7 +3,7 @@
 A React, Vite, and TypeScript project for savings, expenses, independent plans,
 and goal forecasts.
 
-**Current status:** local setup, savings, expenses, and plan management are connected. The home route opens
+**Current status:** local setup, savings, expenses, plans, and goals are connected. The home route opens
 `/savings`, with a monthly breakdown, month navigation, one-month contribution
 adjustments, ongoing schedule changes, reset to the schedule, and direct entry
 create/edit/delete. Ongoing changes apply from the selected month until the next
@@ -24,7 +24,14 @@ cannot be deleted. Promotion reviews differences in linked expenses and requires
 explicit consent to reconcile them, preserving the former Main as an independent
 plan. Later expense changes affect Main only.
 
-Goal screens, settings updates, authentication, and cloud persistence remain unfinished.
+`/goals` supports create/edit/delete, choosing a forecast plan, and comparison
+across every plan. It finds the first month-end balance meeting each target
+within the displayed forecast range (up to 120 months, limited by the plan's
+100-year timeline). Existing savings count; goals are independent and never
+reserve or deduct money. A past qualifying date does not confirm affordability
+today. Missing results are labelled as not reached within the forecast range.
+
+Settings updates, authentication, and cloud persistence remain unfinished.
 
 ## Project documentation
 

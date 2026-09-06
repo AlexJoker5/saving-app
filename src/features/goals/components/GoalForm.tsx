@@ -28,31 +28,45 @@ export function GoalForm({ goal, save, cancel }: GoalFormProps) {
 
   return (
     <form onSubmit={handleSubmit(submit)} noValidate>
-      <Field label="What are you saving for?" error={errors.name?.message}>
-        <input
-          placeholder="A new phone, a trip, a fresh start…"
-          {...register('name')}
-        />
-      </Field>
-      <div className="form-grid">
-        <Field label="Target amount (MMK)" error={errors.amount?.message}>
+      <fieldset disabled={isSubmitting}>
+        <Field label="What are you saving for?" error={errors.name?.message}>
           <input
-            type="number"
-            placeholder="3000000"
-            {...register('amount', { valueAsNumber: true })}
+            maxLength={60}
+            placeholder="A new phone, a trip, a fresh start…"
+            {...register('name')}
           />
         </Field>
-        <Field label="Start month" error={errors.start?.message}>
-          <input type="month" {...register('start')} />
+        <div className="form-grid">
+          <Field label="Target amount (MMK)" error={errors.amount?.message}>
+            <input
+              type="number"
+              min={1}
+              max={1_000_000_000_000}
+              step={1}
+              placeholder="3000000"
+              {...register('amount', { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Start month" error={errors.start?.message}>
+            <input
+              type="month"
+              min="2000-01"
+              max="2099-12"
+              {...register('start')}
+            />
+          </Field>
+        </div>
+        <Field
+          label="A note to yourself (optional)"
+          error={errors.note?.message}
+        >
+          <textarea rows={2} maxLength={160} {...register('note')} />
         </Field>
-      </div>
-      <Field label="A note to yourself (optional)" error={errors.note?.message}>
-        <textarea rows={2} {...register('note')} />
-      </Field>
-      <p className="notice">
-        Goals compare monthly closing balances. Each goal is independent and
-        does not reserve or deduct any money.
-      </p>
+        <p className="notice">
+          Goals compare monthly closing balances. Each goal is independent and
+          does not reserve or deduct any money.
+        </p>
+      </fieldset>
       <FormActions busy={isSubmitting} error={error} cancel={cancel} />
     </form>
   );

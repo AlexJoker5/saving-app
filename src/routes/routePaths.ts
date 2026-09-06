@@ -3,5 +3,6 @@ export const routePaths = {
   savings: '/savings',
   expenses: '/expenses',
   plans: '/plans',
+  goals: '/goals',
   setup: '/setup',
 } as const;

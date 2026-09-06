@@ -511,3 +511,38 @@ fieldset {
   margin-top: 0.2rem;
   accent-color: var(--color-primary);
 }
+
+.goal-card .badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.goal-note {
+  white-space: pre-wrap;
+  margin-block: var(--space-3);
+}
+.goal-forecast p {
+  margin-block: var(--space-2);
+}
+.goal-date {
+  font-size: 1.4rem;
+  font-weight: 650;
+}
+.goal-comparisons {
+  margin-block: var(--space-4);
+}
+.goal-comparisons summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.goal-comparisons .breakdown > div {
+  align-items: flex-start;
+}
+.goal-comparisons dt,
+.goal-comparisons dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.goal-comparisons small {
+  display: block;
+  font-weight: 400;
+}
