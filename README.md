@@ -38,8 +38,8 @@ protection. The budget applies to every month.
 `/account` provides Supabase email/password sign-in and Google Authenticator
 (TOTP) setup. Enrolled accounts must verify a six-digit code after password
 sign-in. Account settings support backup authenticators and verified removal.
-Signup and password recovery are implemented but disabled until email delivery
-is configured. Savings remain browser-local, shared by accounts using the same
+Signup confirmation and password recovery are enabled in production through
+Gmail SMTP. Email delivery has not been exercised as part of this release. Savings remain browser-local, shared by accounts using the same
 browser profile. Signing out keeps that workspace. Cloud persistence and
 cross-device synchronization remain unfinished.
 
@@ -72,8 +72,16 @@ are allowed in Supabase Auth URL Configuration:
 
 The production Site URL and `/account` redirect above were saved in Supabase on
 September 7, 2026. Email sign-in, required email confirmation, and TOTP were
-confirmed enabled. Custom SMTP remains disabled pending the email provider and
-sender domain. The local development redirect is optional and has not been added.
+confirmed enabled. Gmail custom SMTP is now saved using `smtp.gmail.com:465`
+and sender name Saving. The user entered the Google App Password directly into
+Supabase; no SMTP credentials belong in this repository or Vercel's frontend
+variables. Gmail's personal-email delivery limitations are accepted for this
+small project. No application tests or test emails were run.
+
+`VITE_AUTH_EMAIL_ENABLED=true` is set for Vercel Production. Preview and Development
+remain false until their exact callback URLs are configured. The local development
+redirect above is optional and has not been added. New environments should keep
+the false default in `.env.example` until ready.
 
 Add only trusted preview URLs when needed. Set `VITE_AUTH_EMAIL_ENABLED=true`
 and rebuild after configuration to expose signup and password recovery. This flag
