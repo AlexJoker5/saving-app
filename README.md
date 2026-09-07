@@ -70,6 +70,11 @@ are allowed in Supabase Auth URL Configuration:
 - Redirect: `https://saving-app-dusky.vercel.app/account`
 - Local development redirect: `http://127.0.0.1:5173/account`
 
+The production Site URL and `/account` redirect above were saved in Supabase on
+September 7, 2026. Email sign-in, required email confirmation, and TOTP were
+confirmed enabled. Custom SMTP remains disabled pending the email provider and
+sender domain. The local development redirect is optional and has not been added.
+
 Add only trusted preview URLs when needed. Set `VITE_AUTH_EMAIL_ENABLED=true`
 and rebuild after configuration to expose signup and password recovery. This flag
 controls the UI; Supabase Auth settings control whether the server accepts signup.
