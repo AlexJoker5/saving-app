@@ -11,7 +11,8 @@ schedule, preserving month adjustments and Saving-record precedence.
 Extra additions and withdrawals appear in the selected month with planned-date
 labels. Deletion requires confirmation; expense-linked records are read-only here. `/setup` replaces the labelled example
 workspace with your own starting balance, monthly saving, and spending budget.
-Changes persist in this browser with revision-conflict protection.
+Changes persist with revision-conflict protection: browser-local while signed out,
+or in the account-owned cloud workspace after sign-in and authenticator verification.
 
 `/expenses` lists monthly records, separates budget spending, savings spending,
 and recorded saving, and supports create/edit/delete through one Paid from form.
@@ -40,9 +41,9 @@ protection. The budget applies to every month.
 sign-in. Account settings support backup authenticators and verified removal.
 Signup confirmation and password recovery are enabled in production through
 Gmail SMTP. Email delivery has not been exercised as part of this release.
-Cloud workspace storage and explicit local-data import are implemented behind
-`VITE_CLOUD_WORKSPACE_ENABLED`. It remains disabled until the database migration
-is applied. The live app therefore continues using browser-local savings.
+Cloud workspace storage and explicit local-data import are enabled for Production
+with `VITE_CLOUD_WORKSPACE_ENABLED=true`. Signed-out visitors retain browser-local
+savings. Local data is copied to an account only after review and confirmation.
 
 ## Project documentation
 
@@ -95,15 +96,19 @@ users can enroll a second authenticator before losing their first device.
 
 ## Cloud workspace activation
 
-Apply `supabase/migrations/20260907190000_account_workspaces.sql` once to the
-existing Supabase project before setting `VITE_CLOUD_WORKSPACE_ENABLED=true` in
-Vercel Production and deploying. The migration is currently **pending**: the
-Supabase dashboard connection failed before it could be applied. Keep the flag
-false until application is confirmed. On a fresh project, apply the migration
-through your normal migration tooling. If applied manually in SQL Editor, record
-that fact before using CLI migrations; do not blindly apply it twice.
+The user confirmed manual application of
+`supabase/migrations/20260907190000_account_workspaces.sql` in the existing
+Supabase project on September 8, 2026. Production is configured with
+`VITE_CLOUD_WORKSPACE_ENABLED=true`; Preview and Development remain false.
+The dashboard connection timed out during the follow-up inspection, so the
+live schema, grants, and policies have not been independently verified.
 
-When enabled:
+For a fresh project, apply this migration once through normal migration tooling
+before enabling the flag and rebuilding. The existing project was migrated
+manually in SQL Editor; reconcile its migration history before using CLI
+migrations, and do not blindly apply the SQL twice.
+
+With cloud storage enabled:
 
 - Signed-out visitors keep the existing browser-local workspace. Signed-in users
   must enroll and verify Google Authenticator before using cloud savings.
@@ -179,13 +184,13 @@ remains below the default build warning threshold; the Supabase SDK is a separat
 - Private repository: <https://github.com/Lazy-Ass-Developers/saving-app>
 - Supabase project: <https://supabase.com/dashboard/project/ujmfbmyzqkbyzjiyjnjk>
 
-The resources were created with permission. Deployment preparation is now resumed.
+The resources were created with permission. Production is published on Vercel.
 `vercel.json` selects the Vite build and supplies the SPA fallback for direct
 visits to `/savings`, `/setup`, and other client routes, following the
 [Vercel Vite deployment guidance](https://vercel.com/docs/frameworks/frontend/vite#using-vite-to-make-spas).
-This version stores savings only in each visitor's browser. Optional account
-authentication uses Supabase public project configuration. It does not upload
-local savings data to a server.
+Signed-out savings stay in each visitor's browser. Authenticated cloud savings
+use Supabase with account ownership and authenticator requirements. Existing
+local savings are uploaded only through the explicit first-use import.
 
 The handoff documents remain local under the existing Git ignore rules.
 
