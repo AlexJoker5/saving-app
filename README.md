@@ -34,7 +34,8 @@ reserve or deduct money. A past qualifying date does not confirm affordability
 today. Missing results are labelled as not reached within the forecast range.
 
 `/settings` updates the workspace-wide monthly spending budget with revision
-protection. The budget applies to every month.
+protection. The budget applies to every month. It also offers downloadable JSON
+backups of the saved local or cloud workspace currently loaded in the tab.
 
 `/account` provides Supabase email/password sign-in and Google Authenticator
 (TOTP) setup. Enrolled accounts must verify a six-digit code after password
@@ -142,6 +143,31 @@ The existing route guard remains in place, with additional MFA checks before
 cloud loading. Code review, lint, and cloud-enabled production compilation were
 performed; application tests, RLS behavior tests, and browser flows are skipped
 at the user's request. These flows are not runtime-verified.
+
+## Downloadable workspace backups
+
+Open Settings and choose **Download JSON backup** to save the current workspace
+as a timestamped `.json` file. This includes every plan, savings entry,
+contribution schedule, expense, goal, Main selection, and monthly budget.
+It works with both local and cloud workspaces without changing either copy.
+
+The export uses the saved snapshot currently loaded in the tab, validated through
+the workspace schema. Unsaved form edits and remote changes that have not loaded
+are excluded. If a refresh fails, the last successfully loaded snapshot can still
+be exported; it is not guaranteed to be the latest cloud revision. Example data
+is clearly labelled in Settings and uses a `saving-example-` filename prefix.
+
+The JSON envelope has `format: "saving-workspace-backup"`, `version: 1`, a UTC
+ISO `exportedAt` timestamp, and `snapshot` containing `state` and `revision`.
+The revision describes the exported snapshot, not a revision to force onto a
+future destination. Only validated workspace fields are serialized; Supabase
+sessions, passwords, authenticator secrets, and account identifiers are excluded.
+The file contains financial records in plain text and is not encrypted.
+
+Saving requests a browser download and releases its temporary object URL after
+one minute. The browser controls the destination and whether the download is
+accepted, so the app asks users to confirm the file in their downloads. Backup
+file restoration is not implemented in this release.
 
 ## Formatting and coding standards
 
