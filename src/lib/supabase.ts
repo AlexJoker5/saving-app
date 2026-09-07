@@ -8,6 +8,8 @@ export const authConfigured = Boolean(
 );
 export const authEmailEnabled =
   import.meta.env.VITE_AUTH_EMAIL_ENABLED === 'true';
+export const cloudWorkspaceEnabled =
+  import.meta.env.VITE_CLOUD_WORKSPACE_ENABLED === 'true';
 let client: Promise<SupabaseClient> | undefined;
 
 export function getSupabase() {

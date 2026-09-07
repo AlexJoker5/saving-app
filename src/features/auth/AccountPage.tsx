@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cloudWorkspaceEnabled } from '../../lib/supabase';
 import { Link } from 'react-router';
 import { useAuthContext } from './hooks/useAuthContext';
 import { CredentialsForm } from './components/CredentialsForm';
@@ -48,9 +49,9 @@ function AccountContent() {
           : 'Account & security'}
       </h1>
       <p className="notice">
-        Savings are still stored only in this browser. Signing in does not
-        upload them or create a separate workspace for each account. Signing out
-        leaves this local workspace available on this device.
+        {cloudWorkspaceEnabled
+          ? 'Sign in and verify Google Authenticator to use your private cloud workspace. On first use, choose a fresh workspace or explicitly import local savings. Signing out returns to the separate browser-local workspace.'
+          : 'Savings are stored only in this browser. Signing in does not upload them or create a separate workspace for each account. Signing out leaves this local workspace available on this device.'}
       </p>
       {error && (
         <p role="alert" className="notice danger">
@@ -144,7 +145,9 @@ function AccountContent() {
               <p role="status">
                 {factors.length
                   ? 'Authenticator 2FA is enabled.'
-                  : 'Authenticator 2FA is not enabled yet.'}
+                  : cloudWorkspaceEnabled
+                    ? 'Set up Google Authenticator to access your cloud savings.'
+                    : 'Authenticator 2FA is not enabled yet.'}
               </p>
               {enrollment ? (
                 <>
@@ -200,7 +203,9 @@ function AccountContent() {
                   <h2>Remove {removing.name}?</h2>
                   <p>
                     {factors.length === 1 && removing.verified
-                      ? 'Removing your last authenticator turns off 2FA. '
+                      ? cloudWorkspaceEnabled
+                        ? 'Removing your last authenticator turns off 2FA and blocks cloud savings until you enroll another authenticator. '
+                        : 'Removing your last authenticator turns off 2FA. '
                       : ''}
                     Confirm with a current code before removing a verified
                     authenticator.
@@ -310,9 +315,15 @@ function AccountContent() {
         )}
       {(auth.phase === 'signed-out' ||
         auth.phase === 'disabled' ||
-        (auth.phase === 'signed-in' && !auth.recovery)) && (
+        (auth.phase === 'signed-in' &&
+          !auth.recovery &&
+          (!cloudWorkspaceEnabled || factors.length > 0))) && (
         <p>
-          <Link to={routePaths.savings}>Continue to local savings</Link>
+          <Link to={routePaths.savings}>
+            {cloudWorkspaceEnabled && auth.phase === 'signed-in'
+              ? 'Continue to cloud savings'
+              : 'Continue to local savings'}
+          </Link>
         </p>
       )}
     </section>

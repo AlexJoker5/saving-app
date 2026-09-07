@@ -39,9 +39,10 @@ protection. The budget applies to every month.
 (TOTP) setup. Enrolled accounts must verify a six-digit code after password
 sign-in. Account settings support backup authenticators and verified removal.
 Signup confirmation and password recovery are enabled in production through
-Gmail SMTP. Email delivery has not been exercised as part of this release. Savings remain browser-local, shared by accounts using the same
-browser profile. Signing out keeps that workspace. Cloud persistence and
-cross-device synchronization remain unfinished.
+Gmail SMTP. Email delivery has not been exercised as part of this release.
+Cloud workspace storage and explicit local-data import are implemented behind
+`VITE_CLOUD_WORKSPACE_ENABLED`. It remains disabled until the database migration
+is applied. The live app therefore continues using browser-local savings.
 
 ## Project documentation
 
@@ -92,11 +93,50 @@ changing their password. Ensure TOTP enrollment/verification are enabled in the
 Supabase MFA settings. No application-generated recovery codes are provided;
 users can enroll a second authenticator before losing their first device.
 
-This release adds account authentication, not account-owned savings storage.
-The navigation gate keeps incomplete sign-in/recovery flows on Account, but
-localStorage remains accessible on the device. Future cloud tables must enforce
-user ownership and the required `aal2` assurance level through server-side RLS.
-No savings are uploaded or cleared by authentication.
+## Cloud workspace activation
+
+Apply `supabase/migrations/20260907190000_account_workspaces.sql` once to the
+existing Supabase project before setting `VITE_CLOUD_WORKSPACE_ENABLED=true` in
+Vercel Production and deploying. The migration is currently **pending**: the
+Supabase dashboard connection failed before it could be applied. Keep the flag
+false until application is confirmed. On a fresh project, apply the migration
+through your normal migration tooling. If applied manually in SQL Editor, record
+that fact before using CLI migrations; do not blindly apply it twice.
+
+When enabled:
+
+- Signed-out visitors keep the existing browser-local workspace. Signed-in users
+  must enroll and verify Google Authenticator before using cloud savings.
+- Each account owns one `public.workspaces` row containing the existing JSON
+  workspace, revision, and update timestamp. Saves keep linked expenses and Main
+  entries together. The database caps the JSON document at 5 MiB and checks its
+  basic shape; the application validates the complete domain schema.
+- Database RLS requires the owning user ID and an `aal2` JWT for select, insert,
+  and update. Anonymous clients have no grants. Authenticated clients can insert
+  only user ID/state and update only state; they cannot delete rows or set the
+  revision, timestamp, or ownership. A trigger increments revisions on updates.
+- A first-use screen offers a fresh workspace or review/confirmation of a local
+  import. The import copies plans, entries, schedules, expenses, goals, and budget.
+  It rechecks the reviewed local snapshot, only inserts when no cloud row exists,
+  and never overwrites an existing cloud workspace. Browser data is retained.
+- Local and cloud copies evolve separately. Signing out returns to the local
+  copy. Cloud data is kept in an account-scoped in-memory cache, never persisted
+  into localStorage. Switching accounts resets that cache and mounted forms.
+- Saves use the expected revision in the update condition. A concurrent change
+  triggers the existing review-and-retry flow; failed saves preserve drafts.
+- Cloud reads refresh on focus/reconnection and every 30 seconds while visible.
+  There is no realtime subscription, offline write queue, or automatic merge.
+  A cloud error never switches saving to local storage.
+
+Preview and Development keep cloud storage disabled unless deliberately enabled
+against a migrated project. Disabling the flag restores the local interface and
+does not delete cloud rows. Cloud data requires authenticator enrollment again
+if the user removes their last factor.
+
+The existing route guard remains in place, with additional MFA checks before
+cloud loading. Code review, lint, and cloud-enabled production compilation were
+performed; application tests, RLS behavior tests, and browser flows are skipped
+at the user's request. These flows are not runtime-verified.
 
 ## Formatting and coding standards
 

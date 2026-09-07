@@ -53,7 +53,7 @@ export function SetupForm({ save, cancel }: SetupFormProps) {
         <input type="number" {...register('budget', { valueAsNumber: true })} />
       </Field>
       <p className="notice">
-        This replaces the example workspace with your own empty one. Monthly
+        This starts an empty workspace using the amounts you enter. Monthly
         savings apply automatically at the start of each month in Myanmar time.
       </p>
       <FormActions

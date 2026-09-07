@@ -8,10 +8,13 @@ const localRepository = new LocalWorkspaceRepository();
 
 export function useWorkspace(
   repository: WorkspaceRepository = localRepository,
+  cloud = false,
 ) {
   const result = useSWR(repository.key, () => repository.read(), {
     revalidateOnFocus: true,
     shouldRetryOnError: false,
+    refreshInterval: cloud ? 30000 : 0,
+    revalidateOnReconnect: true,
   });
   const { mutate } = result;
 
