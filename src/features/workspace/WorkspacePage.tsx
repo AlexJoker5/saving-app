@@ -1,9 +1,10 @@
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useMatch } from 'react-router';
 import { useWorkspace } from './hooks/useWorkspace';
 import type { WorkspaceContext } from './types/workspace.type';
 import { routePaths } from '../../routes/routePaths';
 
 export function WorkspacePage() {
+  const accountRoute = useMatch(routePaths.account);
   const { data, revision, error, isLoading, isValidating, mutate, commit } =
     useWorkspace();
 
@@ -22,18 +23,19 @@ export function WorkspacePage() {
           <NavLink to={routePaths.plans}>Plans</NavLink>
           <NavLink to={routePaths.goals}>Goals</NavLink>
           <NavLink to={routePaths.settings}>Settings</NavLink>
+          <NavLink to={routePaths.account}>Account</NavLink>
           {data?.demo && (
             <NavLink to={routePaths.setup}>Set up my savings</NavLink>
           )}
         </nav>
       </header>
       <main id="main-content">
-        {isLoading && !data && (
+        {!accountRoute && isLoading && !data && (
           <p role="status" className="panel">
             Loading your workspace…
           </p>
         )}
-        {error && (
+        {!accountRoute && error && (
           <div role="alert" className="panel danger">
             <h1>
               {data
@@ -54,29 +56,35 @@ export function WorkspacePage() {
             </button>
           </div>
         )}
-        {data && (
-          <>
-            {data.demo ? (
-              <aside className="demo-banner">
-                <div>
-                  <strong>Example workspace</strong>
-                  <p>Explore sample numbers, or start with your own savings.</p>
-                </div>
-                <Link className="button secondary" to={routePaths.setup}>
-                  Set up my savings
-                </Link>
-              </aside>
-            ) : (
-              <p className="storage-note">
-                Stored in this browser · Local workspace
-              </p>
-            )}
-            <Outlet
-              context={
-                { state: data, revision, commit } satisfies WorkspaceContext
-              }
-            />
-          </>
+        {accountRoute ? (
+          <Outlet />
+        ) : (
+          data && (
+            <>
+              {data.demo ? (
+                <aside className="demo-banner">
+                  <div>
+                    <strong>Example workspace</strong>
+                    <p>
+                      Explore sample numbers, or start with your own savings.
+                    </p>
+                  </div>
+                  <Link className="button secondary" to={routePaths.setup}>
+                    Set up my savings
+                  </Link>
+                </aside>
+              ) : (
+                <p className="storage-note">
+                  Stored in this browser · Local workspace
+                </p>
+              )}
+              <Outlet
+                context={
+                  { state: data, revision, commit } satisfies WorkspaceContext
+                }
+              />
+            </>
+          )
         )}
       </main>
       <footer>Amounts in MMK · Dates use Myanmar time</footer>

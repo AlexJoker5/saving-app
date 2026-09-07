@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { BudgetForm } from './components/BudgetForm';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
 import { routePaths } from '../../routes/routePaths';
@@ -16,6 +16,11 @@ export function SettingsPage() {
       <p className="muted">
         Set the monthly spending budget used across your expense history.
         Changes apply to past, current, and future months.
+      </p>
+      <p>
+        <Link to={routePaths.account}>
+          Account and Google Authenticator settings
+        </Link>
       </p>
       <BudgetForm
         budget={state.budget}

@@ -546,3 +546,16 @@ fieldset {
   display: block;
   font-weight: 400;
 }
+
+.auth-qr {
+  display: block;
+  width: 15rem;
+  max-width: 100%;
+  margin-block: var(--space-4);
+  background: white;
+}
+.auth-secret {
+  display: block;
+  overflow-wrap: anywhere;
+  padding-block: var(--space-4);
+}

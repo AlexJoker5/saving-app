@@ -6,4 +6,5 @@ export const routePaths = {
   goals: '/goals',
   setup: '/setup',
   settings: '/settings',
+  account: '/account',
 } as const;

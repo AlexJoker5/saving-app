@@ -33,8 +33,15 @@ reserve or deduct money. A past qualifying date does not confirm affordability
 today. Missing results are labelled as not reached within the forecast range.
 
 `/settings` updates the workspace-wide monthly spending budget with revision
-protection. The budget applies to every month. Authentication and cloud
-persistence remain unfinished.
+protection. The budget applies to every month.
+
+`/account` provides Supabase email/password sign-in and Google Authenticator
+(TOTP) setup. Enrolled accounts must verify a six-digit code after password
+sign-in. Account settings support backup authenticators and verified removal.
+Signup and password recovery are implemented but disabled until email delivery
+is configured. Savings remain browser-local, shared by accounts using the same
+browser profile. Signing out keeps that workspace. Cloud persistence and
+cross-device synchronization remain unfinished.
 
 ## Project documentation
 
@@ -47,6 +54,36 @@ persistence remain unfinished.
 
 Use Node.js 22.19 or newer within the Node.js 22 release line. Install the exact
 lockfile dependencies with `npm ci`, then start the app with `npm run dev`.
+
+## Authentication configuration
+
+Copy `.env.example` to `.env.local` and set the Supabase project URL and its
+public publishable key. Never put service-role or secret keys in `VITE_` values.
+The SDK loads separately from the main application bundle. Without these values,
+local savings still work and the Account page shows that sign-in is unavailable.
+
+Keep `VITE_AUTH_EMAIL_ENABLED=false` until custom SMTP is configured in Supabase,
+email/password sign-in and email confirmation are enabled, and these redirects
+are allowed in Supabase Auth URL Configuration:
+
+- Site URL: `https://saving-app-dusky.vercel.app`
+- Redirect: `https://saving-app-dusky.vercel.app/account`
+- Local development redirect: `http://127.0.0.1:5173/account`
+
+Add only trusted preview URLs when needed. Set `VITE_AUTH_EMAIL_ENABLED=true`
+and rebuild after configuration to expose signup and password recovery. This flag
+controls the UI; Supabase Auth settings control whether the server accepts signup.
+Supabase's default email sender is restricted and is not a production email setup.
+The recovery link returns to Account; enrolled accounts must complete TOTP before
+changing their password. Ensure TOTP enrollment/verification are enabled in the
+Supabase MFA settings. No application-generated recovery codes are provided;
+users can enroll a second authenticator before losing their first device.
+
+This release adds account authentication, not account-owned savings storage.
+The navigation gate keeps incomplete sign-in/recovery flows on Account, but
+localStorage remains accessible on the device. Future cloud tables must enforce
+user ownership and the required `aal2` assurance level through server-side RLS.
+No savings are uploaded or cleared by authentication.
 
 ## Formatting and coding standards
 
@@ -82,7 +119,7 @@ written under `artifacts/`. Run `npm run test:e2e` separately from `npm run chec
 The shared icon component imports only the supported icons from `lucide-react`.
 Keep new icons explicitly imported and add their names to the typed icon map;
 avoid importing a full icon collection. The optimized main JavaScript bundle
-is approximately 428 kB before compression, below the default build warning threshold.
+remains below the default build warning threshold; the Supabase SDK is a separate chunk.
 
 ## External resources
 
@@ -93,8 +130,9 @@ The resources were created with permission. Deployment preparation is now resume
 `vercel.json` selects the Vite build and supplies the SPA fallback for direct
 visits to `/savings`, `/setup`, and other client routes, following the
 [Vercel Vite deployment guidance](https://vercel.com/docs/frameworks/frontend/vite#using-vite-to-make-spas).
-This version stores data only in each visitor's browser and requires no external
-credentials. It does not upload local savings data to a server.
+This version stores savings only in each visitor's browser. Optional account
+authentication uses Supabase public project configuration. It does not upload
+local savings data to a server.
 
 The handoff documents remain local under the existing Git ignore rules.
 
