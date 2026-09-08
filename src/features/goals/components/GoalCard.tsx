@@ -60,7 +60,7 @@ export function GoalCard({
             {monthName(selected.range.end)}.
           </p>
           <Link
-            to={`${routePaths.savings}?plan=${encodeURIComponent(selected.plan.id)}`}
+            to={`${routePaths.plans}/${encodeURIComponent(selected.plan.id)}`}
           >
             View / edit this plan
           </Link>
@@ -74,9 +74,7 @@ export function GoalCard({
           {comparisons.map(({ plan, forecast, range }) => (
             <div key={plan.id}>
               <dt>
-                <Link
-                  to={`${routePaths.savings}?plan=${encodeURIComponent(plan.id)}`}
-                >
+                <Link to={`${routePaths.plans}/${encodeURIComponent(plan.id)}`}>
                   {plan.name}
                 </Link>
                 {plan.id === mainId && <span className="muted"> · Main</span>}

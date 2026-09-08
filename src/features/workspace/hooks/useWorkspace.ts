@@ -1,15 +1,9 @@
 import { useEffect } from 'react';
 import useSWR from 'swr';
 import type { AppState, WorkspaceRepository } from '../types/workspace.type';
-import { LocalWorkspaceRepository } from '../repositories/local-workspace-repository';
 import { WorkspaceConflictError } from '../repositories/workspace-repository';
 
-const localRepository = new LocalWorkspaceRepository();
-
-export function useWorkspace(
-  repository: WorkspaceRepository = localRepository,
-  cloud = false,
-) {
+export function useWorkspace(repository: WorkspaceRepository, cloud = false) {
   const result = useSWR(repository.key, () => repository.read(), {
     revalidateOnFocus: true,
     shouldRetryOnError: false,

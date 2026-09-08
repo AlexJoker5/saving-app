@@ -1,58 +1,85 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  ChevronRight,
+  ChevronLeft,
+  Wallet,
+  Repeat2,
+} from 'lucide-react';
 import { routePaths } from '../../routes/routePaths';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
 import { SavingsEntries } from './components/SavingsEntries';
 import { ContributionForm } from './components/ContributionForm';
 import { Modal } from '../../components/ui/Modal';
-import { addMonths, currentMonth, monthName, today } from '../../lib/dates';
+import { MonthNavigation } from '../../components/ui/MonthNavigation';
+import { isDisplayMonth, shiftMonth } from '../../lib/display-month';
+import { currentMonth, monthName } from '../../lib/dates';
+import { monthSchema } from '../../lib/validation';
 import { money } from '../../lib/money';
-import {
-  balanceAt,
-  changeContribution,
-  nextSchedule,
-  timeline,
-} from './utils/saving.utils';
+import { changeContribution } from './utils/saving.utils';
+import { projectedMonth } from '../plans/utils/projection.utils';
+import { PlansPage } from '../plans/PlansPage';
 import type { ContributionEditor } from './types/saving.type';
-
 export function SavingsPage() {
   const { state, revision, commit } = useWorkspaceContext();
+  const { planId, monthId } = useParams();
   const [search, setSearch] = useSearchParams();
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const navigate = useNavigate();
   const [editing, setEditing] = useState<ContributionEditor | null>(null);
-  const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
   const plan = state.plans.find(
-    (item) => item.id === (search.get('plan') ?? state.mainId),
+    (item) => item.id === (planId ?? search.get('plan') ?? state.mainId),
   );
   const editingPlan = editing
     ? state.plans.find((item) => item.id === editing.planId)
     : undefined;
-
   if (!plan) {
     return (
-      <p role="alert">
-        This savings plan is unavailable.{' '}
-        <Link to={routePaths.plans}>View your plans.</Link>
-      </p>
+      <section className="panel">
+        <h1>Plan unavailable</h1>
+        <Link to={routePaths.plans}>Back to Plans</Link>
+      </section>
     );
   }
-
-  const month = selectedMonth < plan.start ? plan.start : selectedMonth;
-  const row = timeline(plan, month).at(-1);
-  const upcoming = nextSchedule(plan, month);
-  const period =
-    month < currentMonth()
-      ? 'Past month'
-      : month === currentMonth()
-        ? 'Current month'
-        : 'Projected month';
-
+  const requested = monthId ?? search.get('month') ?? currentMonth();
+  const month =
+    isDisplayMonth(requested) && requested >= plan.start
+      ? requested
+      : plan.start;
+  const row = projectedMonth(plan, month);
   if (!row) {
-    return <p role="alert">This month is outside your savings timeline.</p>;
+    return <p role="alert">Choose a valid month.</p>;
   }
-
-  const closeEditor = () => {
+  const base = planId
+    ? `${routePaths.plans}/${encodeURIComponent(plan.id)}`
+    : routePaths.savings;
+  const monthLink = (value: string) =>
+    `${base}/months/${value}${planId ? '' : `?plan=${encodeURIComponent(plan.id)}`}`;
+  const changeMonth = (value: string) => {
+    setMessage('');
+    if (monthId) {
+      navigate(monthLink(value));
+    } else {
+      setSearch({ ...(planId ? {} : { plan: plan.id }), month: value });
+    }
+  };
+  const windowMonth = search.get('window') ?? '';
+  const first =
+    isDisplayMonth(windowMonth) && windowMonth >= plan.start
+      ? windowMonth
+      : month;
+  const months = Array.from({ length: 6 }, (_, i) =>
+    shiftMonth(first, i),
+  ).filter(isDisplayMonth);
+  const writableMonth = monthSchema.safeParse(month).success;
+  const back =
+    search.get('from') === 'compare'
+      ? `${routePaths.plans}/compare?month=${search.get('window') ?? month}`
+      : `${base}?month=${month}${planId ? '' : `&plan=${encodeURIComponent(plan.id)}`}`;
+  const close = () => {
     if (!saving) {
       setEditing(null);
     }
@@ -60,191 +87,265 @@ export function SavingsPage() {
 
   return (
     <>
+      {(planId || monthId) && (
+        <Link className="back-link" to={monthId ? back : routePaths.plans}>
+          <ArrowLeft size={19} />
+          {monthId
+            ? search.get('from') === 'compare'
+              ? 'Compare timelines'
+              : planId
+                ? 'Plan details'
+                : 'Saving'
+            : 'Plans'}
+        </Link>
+      )}
       <div className="page-heading">
-        <div>
-          <p className="eyebrow">
-            {plan.id === state.mainId ? 'Main plan' : 'Independent plan'} ·{' '}
-            {plan.name}
+        {!planId && !monthId && (
+          <p className="eyebrow">Make room for tomorrow</p>
+        )}
+        <h1>{monthId ? 'Month details' : planId ? plan.name : 'Savings'}</h1>
+        {(planId || monthId) && (
+          <p className="muted">
+            {monthId
+              ? `${monthName(month)} · ${plan.name}`
+              : plan.id === state.mainId
+                ? 'Your active plan, connected to expenses.'
+                : 'Your own scenario. Changes stay in this plan.'}
           </p>
-          <h1>Your savings</h1>
-        </div>
+        )}
       </div>
-      {plan.id !== state.mainId && (
-        <p className="notice">
-          You’re editing an independent plan. These changes do not change Main
-          or your expense records.{' '}
-          <Link to={routePaths.plans}>Compare plans</Link>
+      {!monthId && (
+        <>
+          {planId ? (
+            <p>
+              <span className="badge">
+                {plan.id === state.mainId ? 'Main' : 'Independent plan'}
+              </span>
+            </p>
+          ) : (
+            <label className="field plan-select">
+              <span>Viewing plan</span>
+              <select
+                value={plan.id}
+                onChange={(event) =>
+                  setSearch({ plan: event.target.value, month })
+                }
+              >
+                {state.plans.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                    {item.id === state.mainId ? ' · Main' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <MonthNavigation
+            month={month}
+            min={plan.start}
+            onChange={changeMonth}
+          />
+          <section className="balance-card">
+            <p>
+              {month > currentMonth()
+                ? 'Projected closing balance'
+                : 'Closing balance'}
+            </p>
+            <strong>
+              {money(row.closing)} <span>MMK</span>
+            </strong>
+            <Link className="balance-link" to={monthLink(month)}>
+              See month breakdown <ArrowUpRight size={18} />
+            </Link>
+          </section>
+          {!planId && writableMonth && (
+            <SavingsEntries
+              key={`${plan.id}:actions`}
+              plan={plan}
+              month={month}
+              actionsOnly
+              initialAdd={search.get('action') === 'add'}
+              onSaved={changeMonth}
+            />
+          )}
+          <div className="list-panel">
+            <div className="navigation-row">
+              <span className="icon-tile">
+                <Repeat2 size={20} />
+              </span>
+              <span>
+                <strong>Monthly saving</strong>
+                <small>
+                  {row.mode} · {monthName(month)}
+                </small>
+              </span>
+              <b>{money(row.regular)} MMK</b>
+            </div>
+          </div>
+          <div className="section-head">
+            <h2>Monthly timeline</h2>
+            <span className="muted">MMK</span>
+          </div>
+          <p className="muted">
+            {monthName(first)} – {monthName(months.at(-1) ?? first)}
+          </p>
+          <div className="list-panel timeline-list">
+            {months.map((value) => (
+              <Link
+                className={`navigation-row ${value === month ? 'selected-month' : ''}`}
+                key={value}
+                to={monthLink(value)}
+              >
+                <span className="timeline-dot" />
+                <span>
+                  <strong>{monthName(value)}</strong>
+                  <small>
+                    {value > currentMonth()
+                      ? 'Projected closing'
+                      : 'Month-end balance'}
+                  </small>
+                </span>
+                <b>{money(projectedMonth(plan, value)?.closing ?? 0)}</b>
+                <ChevronRight size={18} />
+              </Link>
+            ))}
+          </div>
+          <div className="quick-actions">
+            <button
+              className="button secondary"
+              disabled={first === plan.start}
+              onClick={() =>
+                changeMonth(
+                  shiftMonth(first, -6) < plan.start
+                    ? plan.start
+                    : shiftMonth(first, -6),
+                )
+              }
+            >
+              <ChevronLeft size={18} />
+              Earlier
+            </button>
+            <button
+              className="button secondary"
+              disabled={!isDisplayMonth(shiftMonth(first, 6))}
+              onClick={() => changeMonth(shiftMonth(first, 6))}
+            >
+              Next months
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          <p className="muted">
+            Keep browsing future months, or jump directly to a month and year.
+          </p>
+          {planId && <PlansPage managePlanId={plan.id} />}
+        </>
+      )}
+      {monthId && (
+        <>
+          <div className="list-panel">
+            <div className="navigation-row">
+              <span className="icon-tile">
+                <Wallet size={20} />
+              </span>
+              <span>
+                <strong>Opening balance</strong>
+                <small>Start of the month</small>
+              </span>
+              <b>{money(row.opening)}</b>
+            </div>
+          </div>
+          <section className="panel">
+            <div className="section-head">
+              <h2>Regular saving</h2>
+              <span className="badge">{row.mode}</span>
+            </div>
+            <p className="large-money positive">
+              {money(row.regular)} <small>MMK</small>
+            </p>
+            <p className="muted">Scheduled: {money(row.scheduled)} MMK</p>
+            {writableMonth ? (
+              <div className="stack-actions">
+                <button
+                  className="button secondary"
+                  disabled={row.mode === 'Recorded'}
+                  onClick={() =>
+                    setEditing({
+                      month,
+                      revision,
+                      scope: 'month',
+                      planId: plan.id,
+                    })
+                  }
+                >
+                  Adjust monthly saving
+                </button>
+                <button
+                  className="text-button"
+                  onClick={() =>
+                    setEditing({
+                      month,
+                      revision,
+                      scope: 'ongoing',
+                      planId: plan.id,
+                    })
+                  }
+                >
+                  Change ongoing schedule
+                </button>
+              </div>
+            ) : (
+              <p className="muted">
+                This projected month is available to view. Editing dates outside
+                2000–2099 is not supported yet.
+              </p>
+            )}
+          </section>
+          <section className="panel">
+            <dl className="breakdown">
+              <div>
+                <dt>Extra additions</dt>
+                <dd className="positive">+{money(row.extra)} MMK</dd>
+              </div>
+              <div>
+                <dt>Withdrawals</dt>
+                <dd className="negative">−{money(row.withdrawals)} MMK</dd>
+              </div>
+              <div>
+                <dt>Net change</dt>
+                <dd className={row.net < 0 ? 'negative' : 'positive'}>
+                  {row.net > 0 ? '+' : ''}
+                  {money(row.net)} MMK
+                </dd>
+              </div>
+              <div className="closing">
+                <dt>Closing balance</dt>
+                <dd>{money(row.closing)} MMK</dd>
+              </div>
+            </dl>
+          </section>
+          {writableMonth && (
+            <SavingsEntries
+              key={plan.id}
+              plan={plan}
+              month={month}
+              onSaved={changeMonth}
+            />
+          )}
+        </>
+      )}
+      {message && (
+        <p className="notice" role="status">
+          {message}
         </p>
       )}
-      <section className="balance-card" aria-label="Current savings">
-        <p>
-          {plan.start > currentMonth()
-            ? 'Opening balance for your future start'
-            : 'Balance today'}
-        </p>
-        <strong>
-          {money(balanceAt(plan))} <span>MMK</span>
-        </strong>
-        <p>
-          {plan.start > currentMonth()
-            ? `Starts ${monthName(plan.start)}`
-            : `As of ${today()} · excludes later-dated records`}
-        </p>
-      </section>
-      <section className="panel" aria-labelledby="month-heading">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">{period}</p>
-            <h2 id="month-heading">{monthName(month)}</h2>
-          </div>
-          <div className="month-navigation">
-            <button
-              className="icon-button"
-              aria-label="Previous month"
-              disabled={month <= plan.start}
-              onClick={() => {
-                setSelectedMonth(addMonths(month, -1));
-                setMessage('');
-              }}
-            >
-              ←
-            </button>
-            <label className="sr-only" htmlFor="saving-month">
-              View month
-            </label>
-            <input
-              id="saving-month"
-              type="month"
-              min={plan.start}
-              max="2099-12"
-              value={month}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (
-                  /^20\d{2}-(0[1-9]|1[0-2])$/.test(value) &&
-                  value >= plan.start
-                ) {
-                  setSelectedMonth(value);
-                  setMessage('');
-                }
-              }}
-            />
-            <button
-              className="icon-button"
-              aria-label="Next month"
-              disabled={month >= '2099-12'}
-              onClick={() => {
-                setSelectedMonth(addMonths(month, 1));
-                setMessage('');
-              }}
-            >
-              →
-            </button>
-          </div>
-        </div>
-        <dl className="breakdown">
-          <div>
-            <dt>Opening balance</dt>
-            <dd>{money(row.opening)} MMK</dd>
-          </div>
-          <div>
-            <dt>
-              Regular saving <span className="badge">{row.mode}</span>
-            </dt>
-            <dd>+ {money(row.regular)} MMK</dd>
-          </div>
-          <div>
-            <dt>Extra additions</dt>
-            <dd>+ {money(row.extra)} MMK</dd>
-          </div>
-          <div>
-            <dt>Withdrawals</dt>
-            <dd>− {money(row.withdrawals)} MMK</dd>
-          </div>
-          <div className="closing">
-            <dt>Month-end balance</dt>
-            <dd>{money(row.closing)} MMK</dd>
-          </div>
-        </dl>
-        <p className="muted">
-          Month-end totals include all records dated in this month. Automatic
-          savings apply at the start of the month.
-        </p>
-        {row.mode === 'Recorded' ? (
-          <p className="notice">
-            {plan.id === state.mainId ? (
-              <>
-                Saving records determine this month’s contribution.{' '}
-                <Link to={`${routePaths.expenses}?month=${month}`}>
-                  Manage this month’s records in Expenses.
-                </Link>
-              </>
-            ) : (
-              <>
-                Copied Saving records determine this month’s contribution.
-                Current expenses update Main only.{' '}
-                <Link to={routePaths.plans}>
-                  Review connected records when making this plan Main.
-                </Link>
-              </>
-            )}
-          </p>
-        ) : (
-          <button
-            className="button"
-            onClick={() => {
-              setMessage('');
-              setEditing({ month, revision, scope: 'month', planId: plan.id });
-            }}
-          >
-            Adjust this month
-          </button>
-        )}
-        <p className="muted">
-          Scheduled saving: {money(row.scheduled)} MMK per month.
-          {upcoming
-            ? ` Next change: ${money(upcoming.amount)} MMK from ${monthName(upcoming.month)}.`
-            : ' No later schedule change is set.'}
-        </p>
-        <button
-          className="button secondary"
-          onClick={() => {
-            setMessage('');
-            setEditing({ month, revision, scope: 'ongoing', planId: plan.id });
-          }}
-        >
-          Change ongoing saving
-        </button>
-        {message && (
-          <p role="status" className="notice">
-            {message}
-          </p>
-        )}
-      </section>
-      <SavingsEntries
-        plan={plan}
-        month={month}
-        onSaved={(savedMonth, savedPlanId) => {
-          setSearch({ plan: savedPlanId });
-          setSelectedMonth(savedMonth);
-          setMessage('');
-        }}
-      />
       {editing && (
-        <Modal
-          title={
-            editing.scope === 'ongoing'
-              ? 'Change ongoing saving'
-              : 'Adjust monthly saving'
-          }
-          close={closeEditor}
-        >
+        <Modal title="Adjust monthly saving" presentation="form" close={close}>
           {editingPlan ? (
             <ContributionForm
               plan={editingPlan}
               initialScope={editing.scope}
               month={editing.month}
-              cancel={closeEditor}
+              cancel={close}
               save={async (values) => {
                 setSaving(true);
                 try {
@@ -252,31 +353,22 @@ export function SavingsPage() {
                     (current) =>
                       changeContribution(current, editing.planId, values),
                     editing.revision,
-                    (latestRevision) => {
+                    (latestRevision) =>
                       setEditing((current) =>
                         current
                           ? { ...current, revision: latestRevision }
                           : null,
-                      );
-                    },
+                      ),
                   );
-                  setSearch({ plan: editing.planId });
-                  setSelectedMonth(values.month);
                   setEditing(null);
-                  setMessage(
-                    values.scope === 'ongoing'
-                      ? `Saved in this browser: ongoing schedule from ${monthName(values.month)}. Month adjustments and Saving records still take precedence.`
-                      : `Saved in this browser for ${monthName(values.month)}.`,
-                  );
+                  setMessage('Your monthly saving has been updated.');
                 } finally {
                   setSaving(false);
                 }
               }}
             />
           ) : (
-            <p role="alert">
-              This plan no longer exists. Close the form and review your plans.
-            </p>
+            <p role="alert">This plan no longer exists.</p>
           )}
         </Modal>
       )}

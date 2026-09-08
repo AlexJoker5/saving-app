@@ -2,13 +2,20 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { AppIcon } from './AppIcon';
 
 interface ModalProps {
+  presentation?: 'dialog' | 'form';
   title: string;
   description?: string;
   children: ReactNode;
   close: () => void;
 }
 
-export function Modal({ title, description, children, close }: ModalProps) {
+export function Modal({
+  title,
+  description,
+  children,
+  close,
+  presentation = 'dialog',
+}: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
@@ -27,6 +34,7 @@ export function Modal({ title, description, children, close }: ModalProps) {
   return (
     <dialog
       ref={ref}
+      className={presentation === 'form' ? 'form-dialog' : 'sheet-dialog'}
       onCancel={(e) => {
         e.preventDefault();
         close();

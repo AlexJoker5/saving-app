@@ -11,16 +11,17 @@ import {
   renamePlan,
   snapshot,
 } from './utils/plan.utils';
-import { balanceAt, timeline } from '../savings/utils/saving.utils';
+import { projectedMonth } from './utils/projection.utils';
+import { MonthNavigation } from '../../components/ui/MonthNavigation';
+import { ArrowRight, Columns2 } from 'lucide-react';
 import type { PlanEditor } from './types/plan.type';
 import { Modal } from '../../components/ui/Modal';
 import { FormActions } from '../../components/ui/FormActions';
 import { currentMonth, monthName } from '../../lib/dates';
-import { monthSchema } from '../../lib/validation';
 import { money } from '../../lib/money';
 import { routePaths } from '../../routes/routePaths';
 
-export function PlansPage() {
+export function PlansPage({ managePlanId }: { managePlanId?: string }) {
   const { state, revision, commit } = useWorkspaceContext();
   const [month, setMonth] = useState(currentMonth);
   const [editor, setEditor] = useState<PlanEditor | null>(null);
@@ -38,7 +39,7 @@ export function PlansPage() {
   const earlierExpenses =
     selected &&
     state.expenses.some((expense) => expense.date.slice(0, 7) < selected.start);
-  const mainClosing = main ? timeline(main, month).at(-1)?.closing : undefined;
+  const mainClosing = main ? projectedMonth(main, month)?.closing : undefined;
   const close = () => {
     if (!busy) {
       setEditor(null);
@@ -65,144 +66,142 @@ export function PlansPage() {
 
   return (
     <>
-      <div className="page-heading">
-        <p className="eyebrow">Explore your possibilities</p>
-        <h1 ref={heading} tabIndex={-1}>
-          Your plans
-        </h1>
-        <p className="muted">
-          Main connects to your expense records. Copies are independent, so you
-          can try a different saving schedule without changing Main.
-        </p>
-      </div>
-      <section className="panel" aria-label="Compare plans">
-        <label className="field">
-          <span>Compare month-end balances</span>
-          <input
-            type="month"
-            value={month}
-            min="2000-01"
-            max="2099-12"
-            onChange={(event) => {
-              if (monthSchema.safeParse(event.target.value).success) {
-                setMonth(event.target.value);
-              }
-            }}
+      {!managePlanId && (
+        <>
+          <div className="page-heading">
+            <p className="eyebrow">Make room for tomorrow</p>
+            <h1 ref={heading} tabIndex={-1}>
+              Plans
+            </h1>
+            <p className="muted">Explore a different way to reach tomorrow.</p>
+          </div>
+          <Link
+            className="button full-width"
+            to={`${routePaths.plans}/compare`}
+          >
+            <Columns2 size={18} />
+            Compare timelines
+          </Link>
+          <h2>Closing balances</h2>
+          <MonthNavigation
+            month={month}
+            min={
+              state.plans.map((plan) => plan.start).sort()[0] ?? currentMonth()
+            }
+            onChange={setMonth}
           />
-        </label>
-        <p className="muted">
-          Comparing {monthName(month)}. Projections include all records dated in
-          that month.
-        </p>
-      </section>
+        </>
+      )}
       {message && (
         <p role="status" className="notice">
           {message}
         </p>
       )}
       <div className="plans-grid">
-        {state.plans.map((plan) => {
-          const isMain = plan.id === state.mainId;
-          const closing = timeline(plan, month).at(-1)?.closing;
-          const difference =
-            closing !== undefined && mainClosing !== undefined
-              ? closing - mainClosing
-              : undefined;
-          const source = state.plans.find((item) => item.id === plan.sourceId);
-          const conflictCount = isMain
-            ? 0
-            : promotionConflicts(state, plan).length;
+        {state.plans
+          .filter((plan) => !managePlanId || plan.id === managePlanId)
+          .map((plan) => {
+            const isMain = plan.id === state.mainId;
+            const closing = projectedMonth(plan, month)?.closing;
+            const difference =
+              closing !== undefined && mainClosing !== undefined
+                ? closing - mainClosing
+                : undefined;
 
-          return (
-            <article className="panel plan-card" key={plan.id}>
-              <div className="section-head">
-                <h2>{plan.name}</h2>
-                <span className="badge">
-                  {isMain ? 'Main' : 'Independent plan'}
-                </span>
-              </div>
-              <p className="muted">
-                Starts {monthName(plan.start)}
-                {plan.sourceId
-                  ? ` · Copied from ${source?.name ?? 'a removed plan'}`
-                  : ''}
-              </p>
-              <dl className="breakdown">
-                <div>
-                  <dt>
-                    {plan.start > currentMonth()
-                      ? 'Opening balance'
-                      : 'Balance today'}
-                  </dt>
-                  <dd>{money(balanceAt(plan))} MMK</dd>
+            return (
+              <article className="panel plan-card" key={plan.id}>
+                <div className="section-head">
+                  <h2>{plan.name}</h2>
+                  <span className="badge">
+                    {isMain ? 'Main' : 'Independent plan'}
+                  </span>
                 </div>
-                <div>
-                  <dt>{monthName(month)} closing</dt>
-                  <dd>
-                    {closing === undefined
-                      ? 'Before plan start'
-                      : `${money(closing)} MMK`}
-                  </dd>
-                </div>
-                {!isMain && difference !== undefined && (
-                  <div>
-                    <dt>Difference from Main</dt>
-                    <dd>
-                      {difference > 0 ? '+' : ''}
-                      {money(difference)} MMK
-                    </dd>
-                  </div>
-                )}
-              </dl>
-              {conflictCount > 0 && (
-                <p className="notice">
-                  {conflictCount} linked expense{' '}
-                  {conflictCount === 1 ? 'difference' : 'differences'} to review
-                  before making this plan Main.
-                </p>
-              )}
-              <div className="entry-actions">
-                <Link
-                  className="button"
-                  to={`${routePaths.savings}?plan=${encodeURIComponent(plan.id)}`}
-                >
-                  View / edit
-                </Link>
-                <button
-                  className="button secondary"
-                  onClick={() => open({ mode: 'snapshot', plan, revision })}
-                >
-                  Create snapshot
-                </button>
-                <button
-                  className="button secondary"
-                  onClick={() => open({ mode: 'rename', plan, revision })}
-                >
-                  Rename
-                </button>
-                {!isMain && (
+                {!managePlanId && (
                   <>
-                    <button
-                      className="button secondary"
-                      onClick={() => open({ mode: 'promote', plan, revision })}
+                    <p className="large-money">
+                      {closing === undefined
+                        ? 'Before plan start'
+                        : money(closing)}{' '}
+                      {closing !== undefined && <small>MMK</small>}
+                    </p>
+                    <p className="muted">
+                      {isMain
+                        ? 'Your active expense-linked plan'
+                        : difference === undefined
+                          ? `Starts ${monthName(plan.start)}`
+                          : `${money(Math.abs(difference))} MMK ${difference < 0 ? 'below' : 'above'} Main`}
+                    </p>
+                    <Link
+                      className="button secondary full-width plan-open"
+                      to={`${routePaths.plans}/${encodeURIComponent(plan.id)}?month=${month}`}
                     >
-                      Make Main
-                    </button>
-                    <button
-                      className="button secondary danger"
-                      onClick={() => open({ mode: 'delete', plan, revision })}
-                    >
-                      Delete
-                    </button>
+                      View plan <ArrowRight size={18} />
+                    </Link>
                   </>
                 )}
-              </div>
-            </article>
-          );
-        })}
+                {managePlanId && (
+                  <div className="entry-actions plan-management">
+                    <button
+                      className="button secondary"
+                      onClick={() => open({ mode: 'snapshot', plan, revision })}
+                    >
+                      Create snapshot
+                    </button>
+                    <button
+                      className="button secondary"
+                      onClick={() => open({ mode: 'rename', plan, revision })}
+                    >
+                      Rename
+                    </button>
+                    {!isMain && (
+                      <>
+                        <button
+                          className="button secondary danger"
+                          onClick={() =>
+                            open({ mode: 'delete', plan, revision })
+                          }
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+                {managePlanId && !isMain && (
+                  <section className="plan-promotion">
+                    <h3>Make this your Main plan</h3>
+                    <p className="muted">
+                      Review how this plan will connect to your expenses before
+                      switching. Your current Main will remain an independent
+                      plan.
+                    </p>
+                    <button
+                      className="button full-width"
+                      onClick={() => open({ mode: 'promote', plan, revision })}
+                    >
+                      Review making this Main
+                    </button>
+                  </section>
+                )}
+              </article>
+            );
+          })}
       </div>
+      {!managePlanId && main && (
+        <button
+          className="button full-width"
+          onClick={() => open({ mode: 'snapshot', plan: main, revision })}
+        >
+          Create a plan
+        </button>
+      )}
       {editor && (
         <Modal
+          presentation={
+            editor.mode === 'snapshot' || editor.mode === 'rename'
+              ? 'form'
+              : 'dialog'
+          }
           title={
             editor.mode === 'snapshot'
               ? 'Create independent snapshot'
@@ -238,8 +237,8 @@ export function PlansPage() {
                     );
                     finish(
                       editor.mode === 'snapshot'
-                        ? 'Independent snapshot saved in this browser.'
-                        : 'Plan name saved in this browser.',
+                        ? 'Independent snapshot saved to your account.'
+                        : 'Plan name saved to your account.',
                     );
                   } finally {
                     setBusy(false);

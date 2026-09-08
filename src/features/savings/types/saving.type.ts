@@ -53,6 +53,8 @@ export interface ContributionEditor {
 export type DirectEntry = z.infer<typeof directEntrySchema>;
 
 export interface SavingsEntriesProps {
+  actionsOnly?: boolean;
+  initialAdd?: boolean;
   plan: Plan;
   month: string;
   onSaved: (month: string, planId: string) => void;

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { cloudWorkspaceEnabled } from '../../lib/supabase';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useAuthContext } from './hooks/useAuthContext';
 import { CredentialsForm } from './components/CredentialsForm';
 import { AuthenticatorForm } from './components/AuthenticatorForm';
@@ -10,6 +9,7 @@ import { routePaths } from '../../routes/routePaths';
 
 function AccountContent() {
   const auth = useAuthContext();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'sign-in' | 'sign-up' | 'reset'>('sign-in');
   const [enrollment, setEnrollment] = useState<AuthEnrollment | null>(null);
   const [removing, setRemoving] = useState<AuthFactor | null>(null);
@@ -41,17 +41,25 @@ function AccountContent() {
   };
 
   return (
-    <section className="panel setup-panel">
+    <section
+      className={`panel setup-panel account-panel ${auth.phase === 'signed-out' ? 'signin-panel' : ''}`}
+    >
       <p className="eyebrow">Your account</p>
       <h1>
         {auth.phase === 'mfa-required'
           ? 'Verify your sign-in'
-          : 'Account & security'}
+          : auth.phase === 'signed-out'
+            ? mode === 'sign-in'
+              ? 'Your savings, together.'
+              : mode === 'sign-up'
+                ? 'Create an account'
+                : 'Reset password'
+            : 'Account & security'}
       </h1>
-      <p className="notice">
-        {cloudWorkspaceEnabled
-          ? 'Sign in and verify Google Authenticator to use your private cloud workspace. On first use, choose a fresh workspace or explicitly import local savings. Signing out returns to the separate browser-local workspace.'
-          : 'Savings are stored only in this browser. Signing in does not upload them or create a separate workspace for each account. Signing out leaves this local workspace available on this device.'}
+      <p className="muted">
+        {auth.phase === 'signed-out'
+          ? 'Sign in to your account to continue. Google Authenticator verification follows sign-in.'
+          : 'Your financial data is available only after signing in and verifying your authenticator.'}
       </p>
       {error && (
         <p role="alert" className="notice danger">
@@ -115,6 +123,9 @@ function AccountContent() {
                   key={selected.id}
                   verify={async (code) => {
                     await auth.verify(selected.id, code);
+                    if (!auth.recovery) {
+                      navigate(routePaths.home, { replace: true });
+                    }
                     setMessage('Two-factor verification complete.');
                   }}
                 />
@@ -145,9 +156,7 @@ function AccountContent() {
               <p role="status">
                 {factors.length
                   ? 'Authenticator 2FA is enabled.'
-                  : cloudWorkspaceEnabled
-                    ? 'Set up Google Authenticator to access your cloud savings.'
-                    : 'Authenticator 2FA is not enabled yet.'}
+                  : 'Set up Google Authenticator to access your savings.'}
               </p>
               {enrollment ? (
                 <>
@@ -180,6 +189,9 @@ function AccountContent() {
                     verify={async (code) => {
                       await auth.verify(enrollment.id, code);
                       setEnrollment(null);
+                      if (!factors.length) {
+                        navigate(routePaths.home, { replace: true });
+                      }
                       setMessage(
                         'Authenticator enabled. Future sign-ins require its code.',
                       );
@@ -203,9 +215,7 @@ function AccountContent() {
                   <h2>Remove {removing.name}?</h2>
                   <p>
                     {factors.length === 1 && removing.verified
-                      ? cloudWorkspaceEnabled
-                        ? 'Removing your last authenticator turns off 2FA and blocks cloud savings until you enroll another authenticator. '
-                        : 'Removing your last authenticator turns off 2FA. '
+                      ? 'Your account requires an authenticator. Add a backup before removing this device. '
                       : ''}
                     Confirm with a current code before removing a verified
                     authenticator.
@@ -261,7 +271,9 @@ function AccountContent() {
                         </div>
                         <button
                           className="button secondary"
-                          disabled={busy}
+                          disabled={
+                            busy || (factor.verified && factors.length === 1)
+                          }
                           onClick={() => {
                             setRemoving(factor);
                             setMessage('');
@@ -313,18 +325,10 @@ function AccountContent() {
             </button>
           </div>
         )}
-      {(auth.phase === 'signed-out' ||
-        auth.phase === 'disabled' ||
-        (auth.phase === 'signed-in' &&
-          !auth.recovery &&
-          (!cloudWorkspaceEnabled || factors.length > 0))) && (
-        <p>
-          <Link to={routePaths.savings}>
-            {cloudWorkspaceEnabled && auth.phase === 'signed-in'
-              ? 'Continue to cloud savings'
-              : 'Continue to local savings'}
-          </Link>
-        </p>
+      {auth.phase === 'signed-in' && !auth.recovery && factors.length > 0 && (
+        <Link className="button full-width" to={routePaths.home}>
+          Continue to Home
+        </Link>
       )}
     </section>
   );

@@ -49,7 +49,7 @@ export function GoalsPage() {
       <div className="page-heading">
         <p className="eyebrow">Make room for what matters</p>
         <h1 ref={heading} tabIndex={-1}>
-          Your goals
+          Goals
         </h1>
         <p className="muted">
           See when each plan’s monthly closing balance could cover your target.
@@ -122,6 +122,7 @@ export function GoalsPage() {
       )}
       {editor && (
         <Modal
+          presentation={editor.mode === 'delete' ? 'dialog' : 'form'}
           title={
             editor.mode === 'create'
               ? 'Create goal'

@@ -1,6 +1,10 @@
+import { ExpenseDetailsPage } from '../features/expenses/ExpenseDetailsPage';
+import { HomePage } from '../features/home/HomePage';
+import { PlanComparisonPage } from '../features/plans/PlanComparisonPage';
+import { RecurringExpensesPage } from '../features/expenses/RecurringExpensesPage';
 import { AccountPage } from '../features/auth/AccountPage';
 import { AuthGate } from '../features/auth/components/AuthGate';
-import { Navigate, Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router';
 import { WorkspacePage } from '../features/workspace/WorkspacePage';
 import { GoalsPage } from '../features/goals/GoalsPage';
 import { PlansPage } from '../features/plans/PlansPage';
@@ -17,12 +21,21 @@ export function AppRoutes() {
       <Route element={<WorkspacePage />}>
         <Route path={routePaths.account} element={<AccountPage />} />
         <Route element={<AuthGate />}>
-          <Route
-            path={routePaths.home}
-            element={<Navigate to={routePaths.savings} replace />}
-          />
+          <Route path={routePaths.home} element={<HomePage />} />
           <Route path={routePaths.goals} element={<GoalsPage />} />
+          <Route path="/plans/compare" element={<PlanComparisonPage />} />
+          <Route path="/plans/:planId" element={<SavingsPage />} />
+          <Route
+            path="/plans/:planId/months/:monthId"
+            element={<SavingsPage />}
+          />
+          <Route path="/savings/months/:monthId" element={<SavingsPage />} />
+          <Route
+            path="/expenses/recurring"
+            element={<RecurringExpensesPage />}
+          />
           <Route path={routePaths.plans} element={<PlansPage />} />
+          <Route path="/expenses/:expenseId" element={<ExpenseDetailsPage />} />
           <Route path={routePaths.expenses} element={<ExpensesPage />} />
           <Route path={routePaths.savings} element={<SavingsPage />} />
           <Route path={routePaths.setup} element={<SetupPage />} />

@@ -13,3 +13,5 @@ package-lock.json
 SAVING_APP_HANDOFF.md
 public/icons.json
 supabase/migrations
+
+docs/design

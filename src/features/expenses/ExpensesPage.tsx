@@ -1,5 +1,6 @@
+import { Receipt, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
 import { ExpenseForm } from './components/ExpenseForm';
 import { labels } from './schema/expense.schema';
@@ -18,7 +19,28 @@ import { monthSchema } from '../../lib/validation';
 export function ExpensesPage() {
   const { state, revision, commit } = useWorkspaceContext();
   const [search, setSearch] = useSearchParams();
-  const [editor, setEditor] = useState<ExpenseEditor | null>(null);
+  const [editor, setEditor] = useState<ExpenseEditor | null>(() => {
+    const edit = state.expenses.find((item) => item.id === search.get('edit'));
+    const deleting = state.expenses.find(
+      (item) => item.id === search.get('delete'),
+    );
+    if (edit) {
+      return { mode: 'edit', expense: edit, revision, mainId: state.mainId };
+    }
+    if (deleting) {
+      return {
+        mode: 'delete',
+        expense: deleting,
+        revision,
+        mainId: state.mainId,
+      };
+    }
+
+    return search.get('action') === 'add'
+      ? { mode: 'create', revision, mainId: state.mainId }
+      : null;
+  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -80,11 +102,13 @@ export function ExpensesPage() {
   const close = () => {
     if (!busy) {
       setEditor(null);
+      updateSearch({ action: null, edit: null, delete: null });
       setError('');
     }
   };
   const finish = (text: string) => {
     setEditor(null);
+    updateSearch({ action: null, edit: null, delete: null });
     setMessage(text);
     requestAnimationFrame(() => heading.current?.focus());
   };
@@ -133,6 +157,10 @@ export function ExpensesPage() {
             </button>
           </div>
         </div>
+        <p className="muted">Budget remaining</p>
+        <p className="large-money">
+          {money(state.budget - totals.budgetSpending)} <small>MMK</small>
+        </p>
         <dl className="breakdown">
           <div>
             <dt>Spending from budget</dt>
@@ -155,10 +183,15 @@ export function ExpensesPage() {
           by the filters below.
         </p>
       </section>
+      <div className="section-head">
+        <h2>Recurring expenses</h2>
+        <Link to="/expenses/recurring">Manage</Link>
+      </div>
+      <p className="muted">Monthly defaults for rent, bills, and more.</p>
       <section className="panel" aria-labelledby="expense-records-heading">
         <div className="section-head">
           <h2 id="expense-records-heading" ref={heading} tabIndex={-1}>
-            Expense records
+            Monthly records
           </h2>
           <button
             className="button"
@@ -166,46 +199,62 @@ export function ExpensesPage() {
               open({ mode: 'create', revision, mainId: state.mainId })
             }
           >
-            Add record
+            Add expense
           </button>
         </div>
-        <div
-          className="form-grid"
-          role="group"
-          aria-label="Filter expense records"
+        <button
+          className="text-button filter-trigger"
+          onClick={() => setFiltersOpen(true)}
         >
-          <label className="field">
-            <span>Label</span>
-            <select
-              value={label}
-              onChange={(event) => {
-                updateSearch({ label: event.target.value });
-                setMessage('');
-              }}
+          <SlidersHorizontal size={17} /> Filter{hasFilters ? ' · Active' : ''}
+        </button>
+        {filtersOpen && (
+          <Modal title="Filter expenses" close={() => setFiltersOpen(false)}>
+            <div
+              className="form-grid"
+              role="group"
+              aria-label="Filter expense records"
             >
-              <option value="">All labels</option>
-              {labels.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Paid from</span>
-            <select
-              value={source}
-              onChange={(event) => {
-                updateSearch({ source: event.target.value });
-                setMessage('');
-              }}
+              <label className="field">
+                <span>Label</span>
+                <select
+                  value={label}
+                  onChange={(event) => {
+                    updateSearch({ label: event.target.value });
+                    setMessage('');
+                  }}
+                >
+                  <option value="">All labels</option>
+                  {labels.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Paid from</span>
+                <select
+                  value={source}
+                  onChange={(event) => {
+                    updateSearch({ source: event.target.value });
+                    setMessage('');
+                  }}
+                >
+                  <option value="">All sources</option>
+                  <option value="budget">This month’s budget</option>
+                  <option value="savings">Savings</option>
+                </select>
+              </label>
+            </div>
+            <button
+              className="button full-width"
+              onClick={() => setFiltersOpen(false)}
             >
-              <option value="">All sources</option>
-              <option value="budget">This month’s budget</option>
-              <option value="savings">Savings</option>
-            </select>
-          </label>
-        </div>
+              Show expenses
+            </button>
+          </Modal>
+        )}
         <div className="section-head">
           <p role="status" className="muted">
             Showing {visibleExpenses.length} of {expenses.length} records for{' '}
@@ -234,56 +283,24 @@ export function ExpensesPage() {
           <ul className="entry-list expense-list">
             {visibleExpenses.map((expense) => (
               <li key={expense.id}>
-                <div className="entry-details">
-                  <strong>{expense.note || expense.label}</strong>
-                  <p>
-                    <time dateTime={expense.date}>{expense.date}</time> ·{' '}
-                    {expense.label}
-                    {expense.date > today() && (
-                      <span className="badge">Planned</span>
-                    )}
-                  </p>
-                  <small className="muted">
-                    {expense.label === 'Saving'
-                      ? 'Saving contribution · From budget · Linked to Main savings'
-                      : expense.source === 'savings'
-                        ? 'Paid from savings · Linked to Main savings'
-                        : 'Paid from budget'}
-                  </small>
-                </div>
-                <strong className="entry-amount">
-                  {money(expense.amount)} MMK
-                </strong>
-                <div className="entry-actions">
-                  <button
-                    className="button secondary"
-                    aria-label={`Edit ${expense.note || expense.label} on ${expense.date}`}
-                    onClick={() =>
-                      open({
-                        mode: 'edit',
-                        expense,
-                        revision,
-                        mainId: state.mainId,
-                      })
-                    }
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="button secondary danger"
-                    aria-label={`Delete ${expense.note || expense.label} on ${expense.date}`}
-                    onClick={() =>
-                      open({
-                        mode: 'delete',
-                        expense,
-                        revision,
-                        mainId: state.mainId,
-                      })
-                    }
-                  >
-                    Delete
-                  </button>
-                </div>
+                <Link
+                  className="navigation-row"
+                  to={`/expenses/${encodeURIComponent(expense.id)}`}
+                >
+                  <span className="icon-tile">
+                    <Receipt size={20} />
+                  </span>
+                  <span>
+                    <strong>{expense.note || expense.label}</strong>
+                    <small>
+                      {expense.date} ·{' '}
+                      {expense.source === 'savings' ? 'Savings' : 'Budget'}
+                      {expense.date > today() ? ' · Planned' : ''}
+                    </small>
+                  </span>
+                  <b>{money(expense.amount)}</b>
+                  <ChevronRight size={18} />
+                </Link>
               </li>
             ))}
           </ul>
@@ -296,12 +313,13 @@ export function ExpensesPage() {
       </section>
       {editor && (
         <Modal
+          presentation={editor.mode === 'delete' ? 'dialog' : 'form'}
           title={
             editor.mode === 'delete'
               ? 'Delete expense record?'
               : editor.mode === 'edit'
                 ? 'Edit record'
-                : 'Add record'
+                : 'Add expense'
           }
           close={close}
         >
@@ -329,7 +347,7 @@ export function ExpensesPage() {
                     onConflict,
                   );
                   finish(
-                    'Record deleted. Expenses and linked Main savings have been saved in this browser.',
+                    'Record deleted. Expenses and linked Main savings have been saved to your account.',
                   );
                 } catch (caught) {
                   setError(
@@ -407,7 +425,7 @@ export function ExpensesPage() {
                     ...(hiddenByFilters ? { label: null, source: null } : {}),
                   });
                   finish(
-                    'Record saved in this browser. Expenses and linked Main savings are up to date.' +
+                    'Record saved to your account. Expenses and linked Main savings are up to date.' +
                       (hiddenByFilters
                         ? ' Filters cleared to show the saved record.'
                         : ''),

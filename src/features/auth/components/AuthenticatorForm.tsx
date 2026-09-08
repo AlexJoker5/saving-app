@@ -7,7 +7,7 @@ import { useFormSave } from '../../../hooks/useFormSave';
 export function AuthenticatorForm({
   verify,
   cancel,
-  label = 'Verify code',
+  label = 'Verify and continue',
   onBusyChange,
 }: {
   verify: (code: string) => Promise<void>;
@@ -36,6 +36,7 @@ export function AuthenticatorForm({
     <form onSubmit={handleSubmit(submit)} noValidate>
       <Field label="Authenticator code" error={errors.code?.message}>
         <input
+          className="auth-code-input"
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
