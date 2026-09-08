@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { BudgetForm } from './components/BudgetForm';
 import { WorkspaceBackup } from '../workspace/components/WorkspaceBackup';
+import { WorkspaceRestore } from '../workspace/components/WorkspaceRestore';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
 import { routePaths } from '../../routes/routePaths';
 
 export function SettingsPage() {
-  const { state, revision, commit } = useWorkspaceContext();
+  const workspace = useWorkspaceContext();
+  const { state, revision, commit } = workspace;
   const [expectedRevision, setExpectedRevision] = useState(revision);
   const navigate = useNavigate();
 
@@ -38,6 +40,10 @@ export function SettingsPage() {
         />
       </section>
       <WorkspaceBackup />
+      <WorkspaceRestore
+        workspace={workspace}
+        onRestored={() => navigate(routePaths.savings, { replace: true })}
+      />
     </>
   );
 }

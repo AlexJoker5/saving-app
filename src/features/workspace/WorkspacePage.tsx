@@ -4,6 +4,7 @@ import { useAccountWorkspace } from './hooks/useAccountWorkspace';
 import { useAuthContext } from '../auth/hooks/useAuthContext';
 import { AuthGate } from '../auth/components/AuthGate';
 import { CloudWorkspaceSetup } from './components/CloudWorkspaceSetup';
+import { WorkspaceRestore } from './components/WorkspaceRestore';
 import { cloudWorkspaceEnabled } from '../../lib/supabase';
 import type { WorkspaceContext } from './types/workspace.type';
 import { routePaths } from '../../routes/routePaths';
@@ -23,6 +24,9 @@ function WorkspaceData() {
     email,
   } = useAccountWorkspace();
   const navigate = useNavigate();
+  const destination = cloud
+    ? `Cloud workspace for ${email}`
+    : 'Local workspace in this browser';
 
   return (
     <>
@@ -54,17 +58,24 @@ function WorkspaceData() {
       )}
       {data &&
         (cloud && revision === 0 ? (
-          <CloudWorkspaceSetup
-            email={email}
-            save={async (next) => {
-              await commit(
-                () => next,
-                0,
-                () => undefined,
-              );
-              navigate(routePaths.savings, { replace: true });
-            }}
-          />
+          <>
+            <CloudWorkspaceSetup
+              email={email}
+              save={async (next) => {
+                await commit(
+                  () => next,
+                  0,
+                  () => undefined,
+                );
+                navigate(routePaths.savings, { replace: true });
+              }}
+            />
+            <WorkspaceRestore
+              empty
+              workspace={{ state: data, revision, commit, destination }}
+              onRestored={() => navigate(routePaths.savings, { replace: true })}
+            />
+          </>
         ) : (
           <>
             <p className="storage-note">
@@ -91,7 +102,12 @@ function WorkspaceData() {
             )}
             <Outlet
               context={
-                { state: data, revision, commit } satisfies WorkspaceContext
+                {
+                  state: data,
+                  revision,
+                  commit,
+                  destination,
+                } satisfies WorkspaceContext
               }
             />
           </>

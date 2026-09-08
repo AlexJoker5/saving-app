@@ -23,8 +23,8 @@ export function WorkspaceBackup() {
       </p>
       <p>
         The file contains your financial records in plain text. Keep it
-        somewhere private. Restoring a backup file in Saving is not available
-        yet.
+        somewhere private. Use Restore a backup below when you need to recover a
+        saved copy.
       </p>
       {state.demo && (
         <p className="notice">

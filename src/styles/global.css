@@ -559,3 +559,26 @@ fieldset {
   overflow-wrap: anywhere;
   padding-block: var(--space-4);
 }
+
+.backup-filename {
+  overflow-wrap: anywhere;
+}
+.backup-comparison {
+  overflow-x: auto;
+  margin-block: var(--space-4);
+}
+.backup-comparison table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.backup-comparison caption {
+  text-align: left;
+  margin-bottom: var(--space-3);
+}
+.backup-comparison th,
+.backup-comparison td {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}

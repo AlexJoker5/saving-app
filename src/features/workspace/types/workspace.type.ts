@@ -15,6 +15,7 @@ export interface WorkspaceRepository {
 }
 
 export interface WorkspaceContext {
+  destination: string;
   state: AppState;
   revision: number;
   commit: (

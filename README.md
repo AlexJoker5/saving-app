@@ -35,7 +35,8 @@ today. Missing results are labelled as not reached within the forecast range.
 
 `/settings` updates the workspace-wide monthly spending budget with revision
 protection. The budget applies to every month. It also offers downloadable JSON
-backups of the saved local or cloud workspace currently loaded in the tab.
+backups of the saved local or cloud workspace currently loaded in the tab,
+and restoring a backup after validation and an explicit replacement review.
 
 `/account` provides Supabase email/password sign-in and Google Authenticator
 (TOTP) setup. Enrolled accounts must verify a six-digit code after password
@@ -166,8 +167,40 @@ The file contains financial records in plain text and is not encrypted.
 
 Saving requests a browser download and releases its temporary object URL after
 one minute. The browser controls the destination and whether the download is
-accepted, so the app asks users to confirm the file in their downloads. Backup
-file restoration is not implemented in this release.
+accepted, so the app asks users to confirm the file in their downloads.
+
+## Restoring a workspace backup
+
+Use **Restore a backup** in Settings or during first-time cloud setup. Choose a
+version 1 Saving backup of up to 20 MiB. The file is read on the device for review;
+cloud data is written only after the user confirms the replacement. Raw workspace
+JSON, malformed files, and unsupported backup versions are rejected.
+
+Validation checks the existing workspace schema, unique record IDs and plan names,
+valid override months, schedule/entry dates, and matching Main/expense links.
+Independent snapshots may retain historical expense links and deleted source-plan
+references. Invalid backups are rejected without modifying the destination.
+
+The review shows the destination account or local browser, backup filename,
+export time in Myanmar time, backup Main plan, example-data notices, and current
+versus incoming counts and budget. A checkbox and **Replace workspace from backup**
+confirm replacement of all plans, entries, schedules, overrides, expenses, goals,
+and budget together. Data is not merged. Download a copy of current savings first
+if you need to retain it. Account authentication settings are not restored.
+
+Restoration uses the existing workspace commit and repository boundary with the
+reviewed destination revision. The revision in the file is informational and is
+never used to overwrite the destination revision. A changed destination requires
+reviewing the latest workspace and checking consent again. Save failures retain
+the valid review for retry; choosing another file clears the previous review.
+Account changes and unmounting invalidate pending file reads and completion UI.
+
+A successful restore opens Savings. Cloud saves still require verified MFA and
+connectivity, enforce account ownership and database size limits, and retain
+insert-only initialization. Restoring a cloud workspace leaves the browser-local
+copy alone. Local restoration uses the existing local repository and its storage
+limits. This flow requires a readable destination; repairing corrupt storage is
+not included. No application tests or browser restore flows were run.
 
 ## Formatting and coding standards
 
