@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { cloudWorkspaceEnabled } from '../../../lib/supabase';
 import { CloudWorkspaceRepository } from '../repositories/cloud-workspace-repository';
-import { LocalWorkspaceRepository } from '../repositories/local-workspace-repository';
+import {
+  LocalWorkspaceRepository,
+  LocalWorkspaceUnreadableError,
+} from '../repositories/local-workspace-repository';
 import { useWorkspace } from './useWorkspace';
 
 export function useAccountWorkspace() {
@@ -19,8 +22,12 @@ export function useAccountWorkspace() {
     [userId],
   );
 
+  const workspace = useWorkspace(repository, Boolean(userId));
+
   return {
-    ...useWorkspace(repository, Boolean(userId)),
+    ...workspace,
+    canRecoverLocal:
+      !userId && workspace.error instanceof LocalWorkspaceUnreadableError,
     cloud: Boolean(userId),
     email: auth.user?.email ?? '',
   };

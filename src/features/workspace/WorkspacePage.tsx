@@ -5,6 +5,7 @@ import { useAuthContext } from '../auth/hooks/useAuthContext';
 import { AuthGate } from '../auth/components/AuthGate';
 import { CloudWorkspaceSetup } from './components/CloudWorkspaceSetup';
 import { WorkspaceRestore } from './components/WorkspaceRestore';
+import { LocalWorkspaceRecovery } from './components/LocalWorkspaceRecovery';
 import { cloudWorkspaceEnabled } from '../../lib/supabase';
 import type { WorkspaceContext } from './types/workspace.type';
 import { routePaths } from '../../routes/routePaths';
@@ -22,8 +23,10 @@ function WorkspaceData() {
     commit,
     cloud,
     email,
+    canRecoverLocal,
   } = useAccountWorkspace();
   const navigate = useNavigate();
+  const storage = cloud ? 'cloud' : 'local';
   const destination = cloud
     ? `Cloud workspace for ${email}`
     : 'Local workspace in this browser';
@@ -56,7 +59,17 @@ function WorkspaceData() {
           </button>
         </div>
       )}
+      {!cloud && (
+        <LocalWorkspaceRecovery
+          available={canRecoverLocal}
+          onRecovered={async (snapshot) => {
+            await mutate(snapshot, { revalidate: false });
+            navigate(routePaths.savings, { replace: true });
+          }}
+        />
+      )}
       {data &&
+        !canRecoverLocal &&
         (cloud && revision === 0 ? (
           <>
             <CloudWorkspaceSetup
@@ -72,7 +85,13 @@ function WorkspaceData() {
             />
             <WorkspaceRestore
               empty
-              workspace={{ state: data, revision, commit, destination }}
+              workspace={{
+                state: data,
+                revision,
+                commit,
+                destination,
+                storage,
+              }}
               onRestored={() => navigate(routePaths.savings, { replace: true })}
             />
           </>
@@ -107,6 +126,7 @@ function WorkspaceData() {
                   revision,
                   commit,
                   destination,
+                  storage,
                 } satisfies WorkspaceContext
               }
             />

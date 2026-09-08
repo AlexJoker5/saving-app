@@ -15,6 +15,7 @@ export interface WorkspaceRepository {
 }
 
 export interface WorkspaceContext {
+  storage: 'local' | 'cloud';
   destination: string;
   state: AppState;
   revision: number;

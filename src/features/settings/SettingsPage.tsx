@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { BudgetForm } from './components/BudgetForm';
 import { WorkspaceBackup } from '../workspace/components/WorkspaceBackup';
 import { WorkspaceRestore } from '../workspace/components/WorkspaceRestore';
+import { LocalRecoveryCopies } from '../workspace/components/LocalRecoveryCopies';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
 import { routePaths } from '../../routes/routePaths';
 
@@ -39,6 +40,7 @@ export function SettingsPage() {
           }}
         />
       </section>
+      {workspace.storage === 'local' && <LocalRecoveryCopies />}
       <WorkspaceBackup />
       <WorkspaceRestore
         workspace={workspace}

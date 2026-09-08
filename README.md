@@ -199,8 +199,43 @@ A successful restore opens Savings. Cloud saves still require verified MFA and
 connectivity, enforce account ownership and database size limits, and retain
 insert-only initialization. Restoring a cloud workspace leaves the browser-local
 copy alone. Local restoration uses the existing local repository and its storage
-limits. This flow requires a readable destination; repairing corrupt storage is
-not included. No application tests or browser restore flows were run.
+limits. Settings restoration requires a readable destination. Unreadable local
+data has the separate recovery flow below; cloud corruption repair is not included.
+No application tests or browser restore flows were run.
+
+## Recovering unreadable local savings
+
+When browser storage returns data that cannot be parsed as a workspace, the load
+error screen offers **Recover from backup**. This includes an empty stored string;
+only an absent storage key opens the example workspace. Blocked storage access
+and cloud errors keep their retry flow instead of offering local replacement.
+
+Start recovery to capture the original text, optionally download it, and select a
+version 1 Saving JSON backup up to 20 MiB. The existing backup validation is reused.
+Review the backup filename, Myanmar export time, Main plan, record counts, budget,
+and any sample-data notice. Current totals are unavailable because the destination
+cannot be decoded. Recovery requires explicit replacement consent.
+
+The dedicated local repository operation requires Web Locks and uses the same
+workspace lock as normal saves. It compares the original stored string against
+the reviewed string, checks that it is still unreadable, and preserves an exact
+copy under a unique `saving.workspace.v1.recovery.*` key before replacing the active
+workspace. It reads back the preserved string to verify it. An existing identical
+copy can be reused on retry; existing preserved copies are never overwritten.
+
+If the original changes, preservation fails, storage is full, the revision cannot
+be advanced safely, or Web Locks are unavailable, recovery stops. A failed active
+workspace write retains both the original and its preserved copy. Storage events
+invalidate the review; queued recovery is cancelled when its screen unmounts.
+The replacement gets a fresh local revision above any recoverable previous counter,
+and then returns to Savings. No cloud data or authentication settings are changed.
+
+After recovery, **Settings → Preserved local originals** lists copies on request
+and downloads them as text files. The recovery screen also offers the original
+download before and after replacement. These downloads are not validated backups
+and may contain financial records. Preserved copies use browser storage and are
+removed if site data is cleared; they are not uploaded or automatically deleted.
+No browser recovery or quota/concurrency behavior tests were run in this release.
 
 ## Formatting and coding standards
 
