@@ -1,3 +1,4 @@
+import { recurringRulesDiffer } from '../expenses/utils/recurring-expense.utils';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
@@ -35,6 +36,9 @@ export function PlansPage({ managePlanId }: { managePlanId?: string }) {
     ? state.plans.find((plan) => plan.id === editor.plan.id)
     : undefined;
   const conflicts = selected ? promotionConflicts(state, selected) : [];
+  const recurringChanged = selected
+    ? recurringRulesDiffer(state, selected)
+    : false;
   const accepted = acceptedRevision === revision;
   const earlierExpenses =
     selected &&
@@ -269,7 +273,11 @@ export function PlansPage({ managePlanId }: { managePlanId?: string }) {
                       }
                       const hasConflicts =
                         promotionConflicts(current, currentPlan).length > 0;
-                      if (hasConflicts && !accepted) {
+                      if (
+                        (hasConflicts ||
+                          recurringRulesDiffer(current, currentPlan)) &&
+                        !accepted
+                      ) {
                         throw new Error(
                           'Review and accept the connected expense updates first.',
                         );
@@ -280,6 +288,7 @@ export function PlansPage({ managePlanId }: { managePlanId?: string }) {
                           ? reconcilePlan(current, currentPlan.id)
                           : current,
                         currentPlan.id,
+                        accepted,
                       );
                     },
                     editor.revision,
@@ -341,7 +350,8 @@ export function PlansPage({ managePlanId }: { managePlanId?: string }) {
                   selected.id === state.mainId ||
                   (editor.mode === 'promote' &&
                     (Boolean(earlierExpenses) ||
-                      (conflicts.length > 0 && !accepted)))
+                      ((conflicts.length > 0 || recurringChanged) &&
+                        !accepted)))
                 }
               />
             </form>

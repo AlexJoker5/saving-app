@@ -1,3 +1,4 @@
+import { RecurringMonthExpenses } from '../expenses/components/RecurringMonthExpenses';
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
@@ -237,6 +238,16 @@ export function SavingsPage() {
           <p className="muted">
             Keep browsing future months, or jump directly to a month and year.
           </p>
+          <Link
+            className="button secondary full-width"
+            to={
+              planId
+                ? `/plans/${encodeURIComponent(plan.id)}/recurring?month=${month}`
+                : `/expenses/recurring?month=${month}&plan=${encodeURIComponent(plan.id)}&from=savings`
+            }
+          >
+            Manage this plan’s recurring expenses
+          </Link>
           {planId && <PlansPage managePlanId={plan.id} />}
         </>
       )}
@@ -323,6 +334,11 @@ export function SavingsPage() {
               </div>
             </dl>
           </section>
+          <RecurringMonthExpenses
+            plan={plan}
+            month={month}
+            inPlans={Boolean(planId)}
+          />
           {writableMonth && (
             <SavingsEntries
               key={plan.id}

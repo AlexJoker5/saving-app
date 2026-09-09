@@ -6,6 +6,7 @@ export const labels = [
   'Transport',
   'Shopping',
   'Bills',
+  'Housing',
   'Health',
   'Entertainment',
   'Other',
@@ -13,7 +14,13 @@ export const labels = [
 ] as const;
 export const expenseSchema = z
   .object({
-    id: z.string().min(1),
+    id: z
+      .string()
+      .min(1)
+      .refine(
+        (id) => !id.startsWith('recurring:'),
+        'Recurring occurrences are managed through their rule.',
+      ),
     amount: moneySchema.positive('Enter an amount greater than zero'),
     date: dateSchema,
     label: z.enum(labels),

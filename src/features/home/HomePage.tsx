@@ -1,3 +1,7 @@
+import {
+  monthlyExpenses,
+  recentExpenses,
+} from '../expenses/utils/recurring-expense.utils';
 import { Link } from 'react-router';
 import { Plus, ArrowUpRight, Receipt, Flag, ChevronRight } from 'lucide-react';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
@@ -10,13 +14,9 @@ export function HomePage() {
   const { state } = useWorkspaceContext();
   const main = state.plans.find((plan) => plan.id === state.mainId);
   const month = currentMonth();
-  const expenses = state.expenses.filter((expense) =>
-    expense.date.startsWith(month),
-  );
+  const expenses = monthlyExpenses(state, month);
   const totals = expenseTotals(expenses);
-  const recent = [...state.expenses]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 3);
+  const recent = recentExpenses(state);
 
   return (
     <>

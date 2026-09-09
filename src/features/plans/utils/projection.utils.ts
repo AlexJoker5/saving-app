@@ -1,3 +1,7 @@
+import {
+  recurringWithdrawals,
+  recurringWithdrawalsThrough,
+} from '../../expenses/utils/recurring-expense.utils';
 import type { Plan } from '../types/plan.type';
 import type { MonthRow } from '../../savings/types/saving.type';
 import { scheduled } from '../../savings/utils/saving.utils';
@@ -48,7 +52,7 @@ function closingBefore(plan: Plan, end: string): number {
     total += amount - (plan.overrides[month] ?? scheduled(plan, month));
   }
 
-  return total;
+  return total - recurringWithdrawalsThrough(plan, end);
 }
 
 export function projectedMonth(
@@ -67,9 +71,11 @@ export function projectedMonth(
   const extra = entries
     .filter((entry) => entry.kind === 'extra')
     .reduce((sum, entry) => sum + entry.amount, 0);
-  const withdrawals = entries
-    .filter((entry) => entry.kind === 'withdrawal')
-    .reduce((sum, entry) => sum + entry.amount, 0);
+  const withdrawals =
+    entries
+      .filter((entry) => entry.kind === 'withdrawal')
+      .reduce((sum, entry) => sum + entry.amount, 0) +
+    recurringWithdrawals(plan, month);
   const opening = closingBefore(plan, shiftMonth(month, -1));
   const net = regular + extra - withdrawals;
 

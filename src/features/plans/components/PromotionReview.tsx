@@ -1,3 +1,5 @@
+import { recurringRulesDiffer } from '../../expenses/utils/recurring-expense.utils';
+import { RecurringRuleHistory } from '../../expenses/components/RecurringRuleHistory';
 import { linkedEntry } from '../../expenses/utils/expense.utils';
 import { promotionConflicts } from '../utils/plan.utils';
 import type { PromotionReviewProps } from '../types/plan.type';
@@ -72,28 +74,63 @@ export function PromotionReview({
               );
             })}
           </ul>
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={accepted}
-              disabled={disabled}
-              onChange={(event) => setAccepted(event.target.checked)}
-            />
-            <span>
-              Update this plan’s connected entries to match current expenses,
-              then make it Main.
-            </span>
-          </label>
           <p className="muted">
             This can change the plan’s balances. Its direct additions,
-            withdrawals, schedules, and month adjustments stay in place. The
-            expense records themselves are unchanged.
+            withdrawals, schedules, and month adjustments stay in place. One-off
+            expense records are unchanged.
           </p>
         </>
       ) : (
         <p className="notice">
           Connected expense records match. No expense reconciliation is needed.
         </p>
+      )}
+      {recurringRulesDiffer(state, plan) && (
+        <section className="panel">
+          <h3>Recurring expenses will change</h3>
+          <p className="notice">
+            This plan’s recurring rules and month adjustments will become your
+            Main expenses, for past and future months. Your old Main keeps its
+            own rules. Review both sets below.
+          </p>
+          {[currentMain, plan].map(
+            (item) =>
+              item && (
+                <div key={item.id}>
+                  <h4>
+                    {item.id === state.mainId
+                      ? 'Current Main'
+                      : 'After switching'}{' '}
+                    · {item.name}
+                  </h4>
+                  {(item.recurringExpenses ?? []).length ? (
+                    item.recurringExpenses?.map((rule) => (
+                      <div key={rule.id}>
+                        <strong>{rule.schedules[0].name}</strong>
+                        <RecurringRuleHistory rule={rule} />
+                      </div>
+                    ))
+                  ) : (
+                    <p>No recurring rules.</p>
+                  )}
+                </div>
+              ),
+          )}
+        </section>
+      )}
+      {(conflicts.length > 0 || recurringRulesDiffer(state, plan)) && (
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={accepted}
+            disabled={disabled}
+            onChange={(event) => setAccepted(event.target.checked)}
+          />
+          <span>
+            I accept the connected expense updates and this plan’s recurring
+            rules as my Main expenses.
+          </span>
+        </label>
       )}
     </>
   );

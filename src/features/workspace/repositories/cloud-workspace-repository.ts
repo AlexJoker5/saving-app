@@ -59,7 +59,7 @@ export class CloudWorkspaceRepository implements WorkspaceRepository {
     state: AppState,
     expectedRevision: number,
   ): Promise<WorkspaceSnapshot> {
-    const next = stateSchema.parse(state);
+    const next = stateSchema.parse({ ...state, version: 2 });
     const client = await this.client();
     const query =
       expectedRevision === 0

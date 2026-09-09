@@ -1,3 +1,4 @@
+import { recurringWithdrawals } from '../../expenses/utils/recurring-expense.utils';
 import { adjustSchema, directEntrySchema } from '../schema/saving.schema';
 import type { AppState } from '../../workspace/types/workspace.type';
 import type {
@@ -37,9 +38,11 @@ export function timeline(plan: Plan, end: string, cutoff?: string): MonthRow[] {
     const extra = entries
       .filter((e) => e.kind === 'extra')
       .reduce((s, e) => s + e.amount, 0);
-    const withdrawals = entries
-      .filter((e) => e.kind === 'withdrawal')
-      .reduce((s, e) => s + e.amount, 0);
+    const withdrawals =
+      entries
+        .filter((e) => e.kind === 'withdrawal')
+        .reduce((s, e) => s + e.amount, 0) +
+      recurringWithdrawals(plan, month, cutoff);
     const net = regular + extra - withdrawals;
     rows.push({
       month,

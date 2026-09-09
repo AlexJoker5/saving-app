@@ -1,3 +1,4 @@
+import { recurringRulesDiffer } from '../../expenses/utils/recurring-expense.utils';
 import type { AppState } from '../../workspace/types/workspace.type';
 import type { Plan } from '../types/plan.type';
 import type { Entry } from '../../savings/types/saving.type';
@@ -104,7 +105,11 @@ export function reconcilePlan(state: AppState, planId: string): AppState {
     }),
   };
 }
-export function promote(state: AppState, planId: string): AppState {
+export function promote(
+  state: AppState,
+  planId: string,
+  acceptRecurringChanges = false,
+): AppState {
   const plan = state.plans.find((candidate) => candidate.id === planId);
 
   if (!plan) {
@@ -114,6 +119,12 @@ export function promote(state: AppState, planId: string): AppState {
   if (promotionConflicts(state, plan).length > 0) {
     throw new Error(
       'Resolve connected expense differences before making this plan Main.',
+    );
+  }
+
+  if (recurringRulesDiffer(state, plan) && !acceptRecurringChanges) {
+    throw new Error(
+      'Review and accept the recurring expense changes before making this plan Main.',
     );
   }
 

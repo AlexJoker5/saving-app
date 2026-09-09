@@ -1,3 +1,4 @@
+import { findExpense } from './utils/recurring-expense.utils';
 import { Link, useParams } from 'react-router';
 import {
   ArrowLeft,
@@ -14,7 +15,7 @@ import { routePaths } from '../../routes/routePaths';
 export function ExpenseDetailsPage() {
   const { state } = useWorkspaceContext();
   const { expenseId } = useParams();
-  const expense = state.expenses.find((item) => item.id === expenseId);
+  const expense = findExpense(state, expenseId);
   if (!expense) {
     return (
       <section className="panel">
@@ -76,28 +77,40 @@ export function ExpenseDetailsPage() {
         </div>
       </div>
       <p className="notice">
-        {expense.label === 'Saving'
-          ? 'Linked to a saving contribution in Main. Editing this record updates both.'
-          : expense.source === 'savings'
-            ? 'Linked to a withdrawal in Main. Editing or deleting updates both records.'
-            : 'This uses your spending budget and does not create a savings withdrawal.'}
+        {expense.recurringId
+          ? 'This monthly occurrence comes from a recurring rule. Change this month only, reset its default, or change future months from the recurring expense screen.'
+          : expense.label === 'Saving'
+            ? 'Linked to a saving contribution in Main. Editing this record updates both.'
+            : expense.source === 'savings'
+              ? 'Linked to a withdrawal in Main. Editing or deleting updates both records.'
+              : 'This uses your spending budget and does not create a savings withdrawal.'}
       </p>
-      <div className="quick-actions">
+      {expense.recurringId ? (
         <Link
-          className="button"
-          to={`${routePaths.expenses}?${query}&edit=${encodeURIComponent(expense.id)}`}
+          className="button full-width"
+          to={`/expenses/recurring?month=${month}`}
         >
           <Pencil size={18} />
-          Edit expense
+          Manage recurring expense
         </Link>
-        <Link
-          className="button secondary danger"
-          to={`${routePaths.expenses}?${query}&delete=${encodeURIComponent(expense.id)}`}
-        >
-          <Trash2 size={18} />
-          Delete
-        </Link>
-      </div>
+      ) : (
+        <div className="quick-actions">
+          <Link
+            className="button"
+            to={`${routePaths.expenses}?${query}&edit=${encodeURIComponent(expense.id)}`}
+          >
+            <Pencil size={18} />
+            Edit expense
+          </Link>
+          <Link
+            className="button secondary danger"
+            to={`${routePaths.expenses}?${query}&delete=${encodeURIComponent(expense.id)}`}
+          >
+            <Trash2 size={18} />
+            Delete
+          </Link>
+        </div>
+      )}
     </>
   );
 }

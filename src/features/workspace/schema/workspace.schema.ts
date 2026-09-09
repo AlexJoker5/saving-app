@@ -6,7 +6,7 @@ import { goalSchema } from '../../goals/schema/goal.schema';
 
 export const stateSchema = z
   .object({
-    version: z.literal(1),
+    version: z.union([z.literal(1), z.literal(2)]),
     demo: z.boolean(),
     mainId: z.string(),
     budget: moneySchema,

@@ -759,3 +759,12 @@ input[type='number']:not(.month-navigation input) {
   padding-top: 20px;
   border-top: 1px solid var(--color-border);
 }
+
+.recurring-preview .breakdown > div {
+  display: grid;
+  gap: 8px;
+}
+.recurring-preview .breakdown dd {
+  text-align: left;
+  overflow-wrap: anywhere;
+}

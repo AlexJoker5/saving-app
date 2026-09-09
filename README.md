@@ -31,10 +31,25 @@ control accepts valid four-digit calendar years. Existing saved transaction and
 schedule validation still uses 2000–2099; farther-out months are read-only
 projections. The interface explains when editing is unavailable.
 
-Recurring expenses currently have a **design-only form** under Expenses. Saving
-recurring schedules is disabled. Automatic monthly rent/bills, month exceptions,
-and ongoing rule changes require a separately approved data implementation.
-No sample recurring records are inserted into the user's workspace.
+Recurring expenses are managed under Expenses or inside each plan. Rent, bills,
+and other defaults generate one occurrence per month on demand, without creating
+an unbounded set of database rows. A day past the end of a month uses that month's
+last day. Future occurrences are planned amounts, not confirmations of payment.
+
+- **This month only** overrides amount, name, label, funding source, and day for
+  one month. **Use monthly default again** removes that exception.
+- **From this month onward** replaces that month's and all later default changes.
+  Earlier defaults remain. Month-only exceptions still take precedence.
+- An amount of **0** skips one month or pauses ongoing spending. A later positive
+  ongoing amount resumes the rule. Historical rules are retained rather than deleted.
+- Budget-funded occurrences count toward monthly spending. Savings-funded ones
+  also reduce that plan's savings projection and count toward today's balance
+  when their date arrives. Budget overspending never creates a withdrawal.
+- Snapshots copy recurring rules. Independent edits stay in that plan. Main
+  promotion reviews recurring rules as well as connected one-off entries;
+  switching Main changes its recurring history and future defaults together.
+- Existing one-off records stay separate. Start a recurring rule after months
+  already recorded to avoid counting an expense twice.
 
 ## Authentication and account storage
 
@@ -60,9 +75,14 @@ cross-account local persistence.
 
 The user confirmed applying
 `supabase/migrations/20260907190000_account_workspaces.sql` manually on September
-8, 2026. This UI release makes **no database or Supabase dashboard changes**.
-Live schema/grants/policies have not been independently runtime-verified. Future
-schema changes must be supplied as SQL for the user to apply manually.
+8, 2026, and `supabase/migrations/20260909090000_recurring_workspace_format.sql`
+on September 9, 2026. Both scripts are supplied for manual execution; the agent
+does not run database migrations. Fresh projects require both scripts in order.
+The second script accepts workspace versions 1 and 2 and prevents downgrading a
+version 2 account from an older app tab. New cloud saves use version 2. Existing
+version 1 data remains readable; there is no bulk rewrite. Owner/AAL2 policies,
+column grants, the size limit, and revision checks are preserved. Live schema and
+policies have not been independently runtime-verified.
 
 ## Development and configuration
 
@@ -98,12 +118,14 @@ provided; users can enroll a backup authenticator.
 ## Backups and updates
 
 Settings offers JSON download of the validated saved snapshot loaded in the tab,
-including plans, entries, schedules, expenses, goals, Main selection, and budget.
+including plans, entries, schedules, recurring rules and exceptions, expenses,
+goals, Main selection, and budget.
 Unsaved edits and remote changes not yet loaded are excluded. Authentication
 credentials and secrets are not included. These financial backup files are plain
 text, not encrypted.
 
-Restoration accepts version 1 Saving backup files up to 20 MiB, validates their
+Restoration accepts the version 1 backup envelope with workspace format 1 or 2,
+up to 20 MiB, and validates the
 workspace contents, and requires an explicit replacement review. It replaces the
 workspace rather than merging records. The reviewed destination revision protects
 against overwriting concurrent changes. Authentication settings are unaffected.
@@ -127,7 +149,7 @@ VITE_CLOUD_WORKSPACE_ENABLED=true VITE_AUTH_EMAIL_ENABLED=true npm run build
 ```
 
 The build runs TypeScript and Vite. GitHub CI runs lint and build. Application,
-browser, email, and RLS tests are skipped for this design release at the user's
+browser, email, and RLS tests are skipped for this implementation step at the user's
 request. Compilation and deployment readiness do not verify live user flows.
 Existing test commands remain in package.json; older local-workspace browser
 scenarios do not describe the new mandatory-auth interface.

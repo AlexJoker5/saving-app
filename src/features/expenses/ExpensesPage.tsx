@@ -1,4 +1,6 @@
-import { Receipt, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { ExpenseList } from './components/ExpenseList';
+import { monthlyExpenses } from './utils/recurring-expense.utils';
+import { SlidersHorizontal } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useWorkspaceContext } from '../workspace/hooks/useWorkspaceContext';
@@ -12,7 +14,7 @@ import {
 import type { ExpenseEditor } from './types/expense.type';
 import { Modal } from '../../components/ui/Modal';
 import { FormActions } from '../../components/ui/FormActions';
-import { addMonths, currentMonth, monthName, today } from '../../lib/dates';
+import { addMonths, currentMonth, monthName } from '../../lib/dates';
 import { money } from '../../lib/money';
 import { monthSchema } from '../../lib/validation';
 
@@ -54,9 +56,7 @@ export function ExpensesPage() {
   const parsedMonth = monthSchema.safeParse(search.get('month'));
   const selectedMonth = parsedMonth.success ? parsedMonth.data : currentMonth();
   const month = selectedMonth < main.start ? main.start : selectedMonth;
-  const expenses = state.expenses
-    .filter((expense) => expense.date.startsWith(month))
-    .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  const expenses = monthlyExpenses(state, month);
   const totals = expenseTotals(expenses);
   const label = labels.find((value) => value === search.get('label')) ?? '';
   const requestedSource = search.get('source');
@@ -69,6 +69,10 @@ export function ExpensesPage() {
     (expense) =>
       (!label || expense.label === label) &&
       (!source || expense.source === source),
+  );
+  const recurring = visibleExpenses.filter((expense) => expense.recurringId);
+  const otherExpenses = visibleExpenses.filter(
+    (expense) => !expense.recurringId,
   );
   const updateSearch = (changes: Record<string, string | null>) => {
     setSearch((current) => {
@@ -184,14 +188,28 @@ export function ExpensesPage() {
         </p>
       </section>
       <div className="section-head">
-        <h2>Recurring expenses</h2>
-        <Link to="/expenses/recurring">Manage</Link>
+        <h2>Recurring this month</h2>
+        <Link to={`/expenses/recurring?month=${month}`}>Manage</Link>
       </div>
-      <p className="muted">Monthly defaults for rent, bills, and more.</p>
+      {recurring.length ? (
+        <div className="list-panel">
+          <ExpenseList expenses={recurring} />
+        </div>
+      ) : (
+        <p className="muted">
+          {hasFilters
+            ? 'No recurring expenses match these filters.'
+            : 'No recurring expenses apply this month.'}
+        </p>
+      )}
+      <p className="muted">
+        Added automatically each month. Open an entry to adjust its recurring
+        rule.
+      </p>
       <section className="panel" aria-labelledby="expense-records-heading">
         <div className="section-head">
           <h2 id="expense-records-heading" ref={heading} tabIndex={-1}>
-            Monthly records
+            Other expenses
           </h2>
           <button
             className="button"
@@ -279,31 +297,13 @@ export function ExpensesPage() {
             No records match these filters. Change a filter or clear filters to
             see all records for this month.
           </p>
+        ) : otherExpenses.length ? (
+          <ExpenseList expenses={otherExpenses} />
         ) : (
-          <ul className="entry-list expense-list">
-            {visibleExpenses.map((expense) => (
-              <li key={expense.id}>
-                <Link
-                  className="navigation-row"
-                  to={`/expenses/${encodeURIComponent(expense.id)}`}
-                >
-                  <span className="icon-tile">
-                    <Receipt size={20} />
-                  </span>
-                  <span>
-                    <strong>{expense.note || expense.label}</strong>
-                    <small>
-                      {expense.date} ·{' '}
-                      {expense.source === 'savings' ? 'Savings' : 'Budget'}
-                      {expense.date > today() ? ' · Planned' : ''}
-                    </small>
-                  </span>
-                  <b>{money(expense.amount)}</b>
-                  <ChevronRight size={18} />
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <p className="muted">
+            No other expenses match this month’s view. Recurring expenses are
+            listed above.
+          </p>
         )}
         {message && (
           <p role="status" className="notice">

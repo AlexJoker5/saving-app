@@ -43,6 +43,20 @@ export function WorkspaceRestore({
             incoming.expenses.length,
           ],
           [
+            'Recurring rules (all plans)',
+            empty
+              ? 0
+              : review.previous.plans.reduce(
+                  (total, plan) =>
+                    total + (plan.recurringExpenses?.length ?? 0),
+                  0,
+                ),
+            incoming.plans.reduce(
+              (total, plan) => total + (plan.recurringExpenses?.length ?? 0),
+              0,
+            ),
+          ],
+          [
             'Goals',
             empty ? 0 : review.previous.goals.length,
             incoming.goals.length,
@@ -150,9 +164,9 @@ export function WorkspaceRestore({
             </table>
           </div>
           <p>
-            All plans, entries, schedules, month adjustments, expenses, goals,
-            and the budget will be replaced. Account sign-in and authenticator
-            settings stay the same.
+            All plans, entries, schedules, month adjustments, recurring rules,
+            expenses, goals, and the budget will be replaced. Account sign-in
+            and authenticator settings stay the same.
           </p>
           {changed && (
             <p role="alert" className="notice">

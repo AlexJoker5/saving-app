@@ -35,6 +35,10 @@ export function AppRoutes() {
             element={<RecurringExpensesPage />}
           />
           <Route path={routePaths.plans} element={<PlansPage />} />
+          <Route
+            path="/plans/:planId/recurring"
+            element={<RecurringExpensesPage />}
+          />
           <Route path="/expenses/:expenseId" element={<ExpenseDetailsPage />} />
           <Route path={routePaths.expenses} element={<ExpensesPage />} />
           <Route path={routePaths.savings} element={<SavingsPage />} />
