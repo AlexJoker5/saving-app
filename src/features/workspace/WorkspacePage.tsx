@@ -1,4 +1,16 @@
-import { Link, NavLink, Outlet, useMatch, useNavigate } from 'react-router';
+import {
+  authenticationPaths,
+  workspaceAuthenticated,
+} from '../auth/utils/auth-routing';
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useMatch,
+  useNavigate,
+  useLocation,
+  matchPath,
+} from 'react-router';
 import {
   Cloud,
   House,
@@ -105,12 +117,14 @@ function WorkspaceData() {
 }
 
 export function WorkspacePage() {
-  const accountRoute = useMatch(routePaths.account);
+  const accountRoute = useMatch('/account/*');
+  const { pathname } = useLocation();
+  const authenticationRoute = authenticationPaths.some(
+    (path) => matchPath({ path, end: true }, pathname) !== null,
+  );
   const auth = useAuthContext();
-  const ready =
-    auth.phase === 'signed-in' &&
-    !auth.recovery &&
-    auth.factors.some((factor) => factor.verified);
+  const ready = workspaceAuthenticated(auth);
+  const showNavigation = ready && !authenticationRoute;
   const items = [
     [routePaths.home, House, 'Home'],
     [routePaths.savings, Wallet, 'Saving'],
@@ -121,18 +135,15 @@ export function WorkspacePage() {
   ] as const;
 
   return (
-    <div className={`app-shell ${ready ? '' : 'auth-shell'}`}>
+    <div className={`app-shell ${showNavigation ? '' : 'auth-shell'}`}>
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
       <header className="app-header">
-        <Link
-          className="brand"
-          to={ready ? routePaths.home : routePaths.account}
-        >
+        <Link className="brand" to={ready ? routePaths.home : routePaths.login}>
           <Wallet size={19} /> Saving
         </Link>
-        {ready && (
+        {showNavigation && (
           <Link
             className="connection-link"
             to={`${routePaths.settings}?section=data`}
@@ -147,7 +158,7 @@ export function WorkspacePage() {
           key={`${auth.user?.id ?? 'signed-out'}:${auth.phase}`}
           value={isolatedCache}
         >
-          {accountRoute ? (
+          {accountRoute || authenticationRoute ? (
             <Outlet />
           ) : !ready ? (
             <AuthGate />
@@ -165,7 +176,7 @@ export function WorkspacePage() {
           )}
         </SWRConfig>
       </main>
-      {ready && (
+      {showNavigation && (
         <nav className="bottom-navigation" aria-label="Main navigation">
           {items.map(([to, Icon, label]) => (
             <NavLink

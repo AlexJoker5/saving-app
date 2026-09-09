@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { routePaths } from '../../../routes/routePaths';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signInSchema, signUpSchema, emailSchema } from '../schema/auth.schema';
@@ -8,15 +9,9 @@ import { useFormSave } from '../../../hooks/useFormSave';
 
 type Mode = 'sign-in' | 'sign-up' | 'reset';
 
-export function CredentialsForm({
-  mode,
-  changeMode,
-}: {
-  mode: Mode;
-  changeMode: (mode: Mode) => void;
-}) {
+export function CredentialsForm({ mode }: { mode: Mode }) {
   const auth = useAuthContext();
-  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -34,19 +29,14 @@ export function CredentialsForm({
   });
   const { submit, error } = useFormSave(
     async (values: { email: string; password?: string }) => {
-      setMessage('');
       if (mode === 'sign-in') {
         await auth.signIn(values.email, values.password ?? '');
       } else if (mode === 'sign-up') {
         await auth.signUp(values.email, values.password ?? '');
-        setMessage(
-          'Check your email to confirm your account, then return here to sign in. If you already have an account, sign in or reset your password.',
-        );
+        navigate(routePaths.confirmEmail);
       } else {
         await auth.resetPassword(values.email);
-        setMessage(
-          'If this address has an account, a password reset link will arrive shortly.',
-        );
+        navigate(routePaths.resetEmailSent);
       }
       resetField('password');
       resetField('confirmPassword');
@@ -88,13 +78,11 @@ export function CredentialsForm({
           {error}
         </p>
       )}
-      {message && (
-        <p role="status" className="notice">
-          {message}
-        </p>
-      )}
       <div className="form-end">
-        <button className="button" disabled={isSubmitting}>
+        <button
+          className="button"
+          disabled={isSubmitting || (mode !== 'sign-in' && !auth.emailEnabled)}
+        >
           {isSubmitting
             ? 'Please wait…'
             : mode === 'sign-in'
@@ -104,38 +92,25 @@ export function CredentialsForm({
                 : 'Send reset link'}
         </button>
       </div>
-      <div className="form-end">
-        {mode !== 'sign-in' && (
-          <button
-            type="button"
-            className="button secondary"
-            disabled={isSubmitting}
-            onClick={() => changeMode('sign-in')}
-          >
-            Back to sign in
-          </button>
-        )}
-        {mode === 'sign-in' && auth.emailEnabled && (
-          <>
-            <button
-              type="button"
-              className="button secondary"
-              disabled={isSubmitting}
-              onClick={() => changeMode('sign-up')}
-            >
-              Create account
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              disabled={isSubmitting}
-              onClick={() => changeMode('reset')}
-            >
-              Forgot password?
-            </button>
-          </>
-        )}
-      </div>
+      {!isSubmitting && (
+        <div className="form-end">
+          {mode !== 'sign-in' && (
+            <Link className="button secondary" to={routePaths.login}>
+              Back to sign in
+            </Link>
+          )}
+          {mode === 'sign-in' && auth.emailEnabled && (
+            <>
+              <Link className="button secondary" to={routePaths.signup}>
+                Create account
+              </Link>
+              <Link className="button secondary" to={routePaths.forgotPassword}>
+                Forgot password?
+              </Link>
+            </>
+          )}
+        </div>
+      )}
       {!auth.emailEnabled && (
         <p className="notice">
           Sign in with an existing account. New accounts and password reset will

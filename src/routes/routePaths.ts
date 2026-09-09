@@ -7,4 +7,13 @@ export const routePaths = {
   setup: '/setup',
   settings: '/settings',
   account: '/account',
+  login: '/login',
+  signup: '/signup',
+  forgotPassword: '/forgot-password',
+  confirmEmail: '/confirm-email',
+  resetEmailSent: '/reset-email-sent',
+  resetPassword: '/reset-password',
+  twoFactor: '/2fa',
+  twoFactorSetup: '/2fa/setup',
+  addAuthenticator: '/account/authenticators/new',
 } as const;

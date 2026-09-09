@@ -53,6 +53,31 @@ last day. Future occurrences are planned amounts, not confirmations of payment.
 
 ## Authentication and account storage
 
+Authentication uses separate routes and page components:
+
+| Route                                      | Purpose                                        |
+| ------------------------------------------ | ---------------------------------------------- |
+| `/login`                                   | Email/password sign-in                         |
+| `/signup`                                  | Account creation                               |
+| `/confirm-email`                           | Email confirmation instructions after signup   |
+| `/forgot-password`                         | Request a recovery email                       |
+| `/reset-email-sent`                        | Recovery email acknowledgement                 |
+| `/2fa`                                     | Verify an existing authenticator               |
+| `/2fa/setup`                               | First authenticator enrollment                 |
+| `/reset-password`                          | Set a new password after recovery verification |
+| `/account`                                 | Authenticated Account & Security settings      |
+| `/account/authenticators/new`              | Add a backup authenticator                     |
+| `/account/authenticators/:factorId/remove` | Review and verify removal                      |
+
+Each route has an authentication-state guard. Signed-out visitors go to `/login`;
+password-authenticated users must verify at `/2fa` or enroll at `/2fa/setup`.
+Recovery sessions must complete verification before `/reset-password`. Visiting a
+URL does not grant authentication or mark an email confirmed. Account settings
+require completed authentication, and public auth pages redirect active sessions
+to their appropriate next step. Browser navigation and refresh retain the route;
+QR setup secrets are kept only in memory, with unfinished enrollment cleanup after
+leaving or reloading. Authentication pages never load the financial workspace.
+
 The workspace requires Supabase email/password authentication followed by Google
 Authenticator-compatible TOTP. First-time users must enroll and verify an
 Authenticator. Account settings allow backup authenticators; removal of the last
@@ -106,13 +131,17 @@ variables. The Supabase SDK loads separately from the main application bundle.
 Production has both flags enabled. Preview and Development retain their disabled
 configuration. Supabase's production Site URL is
 `https://saving-app-dusky.vercel.app`, with
-`https://saving-app-dusky.vercel.app/account` as the email callback. Local or
+`https://saving-app-dusky.vercel.app/account` as the existing trusted email callback.
+This address remains compatible with already-sent links: once Supabase resolves
+the session, route guards dispatch to verification, enrollment, password reset,
+or authenticated account settings. No dashboard or SQL change is required for
+this routing release. Local or
 preview callbacks must be explicitly configured before enabling those flows.
 
 Gmail SMTP was configured previously in Supabase using the service Gmail account
 and an App Password entered directly by the user. Email delivery is not verified
-in this release. Recovery returns to `/account`; enrolled users complete TOTP
-before changing their password. Application-generated recovery codes are not
+in this release. Recovery links enter through `/account`, then route to `/2fa`
+when verification is needed and `/reset-password` to choose a new password. Application-generated recovery codes are not
 provided; users can enroll a backup authenticator.
 
 ## Backups and updates

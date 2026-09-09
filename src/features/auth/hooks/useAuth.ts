@@ -182,6 +182,8 @@ export function useAuth(): AuthContextValue {
     };
   }, [refresh]);
 
+  // Existing emails and Supabase allow-list use /account. Route guards dispatch
+  // the verified session to its dedicated verification/setup/reset page.
   const redirectTo = () => new URL('/account', window.location.origin).href;
   const requireEmail = () => {
     if (!authEmailEnabled) {
@@ -260,6 +262,9 @@ export function useAuth(): AuthContextValue {
         throw error;
       }
 
+      // Keep unfinished setups visible if the user leaves this route or reloads.
+      await refresh();
+
       return {
         id: data.id,
         qrCode: data.totp.qr_code,
@@ -279,6 +284,21 @@ export function useAuth(): AuthContextValue {
     },
     removeFactor: async (factorId) => {
       const client = await getSupabase();
+      const factors = await client.auth.mfa.listFactors();
+      if (factors.error) {
+        throw factors.error;
+      }
+      const verified = factors.data.totp.filter(
+        (factor) => factor.status === 'verified',
+      );
+      if (
+        verified.length <= 1 &&
+        verified.some((factor) => factor.id === factorId)
+      ) {
+        throw new Error(
+          'Add and verify a backup authenticator before removing your last one.',
+        );
+      }
       const { error } = await client.auth.mfa.unenroll({ factorId });
       if (error) {
         throw error;

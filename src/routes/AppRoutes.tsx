@@ -1,3 +1,13 @@
+import { LoginPage } from '../features/auth/LoginPage';
+import { SignupPage } from '../features/auth/SignupPage';
+import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
+import { ConfirmEmailPage } from '../features/auth/ConfirmEmailPage';
+import { ResetEmailSentPage } from '../features/auth/ResetEmailSentPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
+import { TwoFactorPage } from '../features/auth/TwoFactorPage';
+import { AuthenticatorSetupPage } from '../features/auth/AuthenticatorSetupPage';
+import { RemoveAuthenticatorPage } from '../features/auth/RemoveAuthenticatorPage';
+import { AuthRouteGate } from '../features/auth/components/AuthRouteGate';
 import { ExpenseDetailsPage } from '../features/expenses/ExpenseDetailsPage';
 import { HomePage } from '../features/home/HomePage';
 import { PlanComparisonPage } from '../features/plans/PlanComparisonPage';
@@ -19,7 +29,48 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<WorkspacePage />}>
-        <Route path={routePaths.account} element={<AccountPage />} />
+        <Route element={<AuthRouteGate screen="public" />}>
+          <Route path={routePaths.login} element={<LoginPage />} />
+          <Route path={routePaths.signup} element={<SignupPage />} />
+          <Route
+            path={routePaths.forgotPassword}
+            element={<ForgotPasswordPage />}
+          />
+          <Route
+            path={routePaths.confirmEmail}
+            element={<ConfirmEmailPage />}
+          />
+          <Route
+            path={routePaths.resetEmailSent}
+            element={<ResetEmailSentPage />}
+          />
+        </Route>
+        <Route element={<AuthRouteGate screen="verify" />}>
+          <Route path={routePaths.twoFactor} element={<TwoFactorPage />} />
+        </Route>
+        <Route element={<AuthRouteGate screen="enroll" />}>
+          <Route
+            path={routePaths.twoFactorSetup}
+            element={<AuthenticatorSetupPage />}
+          />
+        </Route>
+        <Route element={<AuthRouteGate screen="reset" />}>
+          <Route
+            path={routePaths.resetPassword}
+            element={<ResetPasswordPage />}
+          />
+        </Route>
+        <Route element={<AuthRouteGate screen="account" />}>
+          <Route path={routePaths.account} element={<AccountPage />} />
+          <Route
+            path={routePaths.addAuthenticator}
+            element={<AuthenticatorSetupPage backup />}
+          />
+          <Route
+            path="/account/authenticators/:factorId/remove"
+            element={<RemoveAuthenticatorPage />}
+          />
+        </Route>
         <Route element={<AuthGate />}>
           <Route path={routePaths.home} element={<HomePage />} />
           <Route path={routePaths.goals} element={<GoalsPage />} />
