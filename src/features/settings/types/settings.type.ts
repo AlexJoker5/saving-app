@@ -15,5 +15,5 @@ export interface BudgetFormProps {
 
 export interface SetupFormProps {
   save: Save<AppState>;
-  cancel: () => void;
+  cancel?: () => void;
 }

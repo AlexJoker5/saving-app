@@ -20,11 +20,10 @@ export function AuthRouteGate({
         ? auth.phase === 'mfa-required'
         : screen === 'enroll'
           ? auth.phase === 'signed-in' &&
+            !auth.recovery &&
             !auth.factors.some((factor) => factor.verified)
           : screen === 'reset'
-            ? auth.phase === 'signed-in' &&
-              auth.recovery &&
-              auth.factors.some((factor) => factor.verified)
+            ? auth.phase === 'signed-in' && auth.recovery
             : workspaceAuthenticated(auth);
 
   return allowed ? (

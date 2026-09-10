@@ -22,9 +22,6 @@ export function authDestination(auth: AuthState) {
   if (auth.phase !== 'signed-in') {
     return null;
   }
-  if (!auth.factors.some((factor) => factor.verified)) {
-    return routePaths.twoFactorSetup;
-  }
 
   return auth.recovery ? routePaths.resetPassword : routePaths.home;
 }

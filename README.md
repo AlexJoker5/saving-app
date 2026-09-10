@@ -69,19 +69,30 @@ Authentication uses separate routes and page components:
 | `/account/authenticators/new`              | Add a backup authenticator                     |
 | `/account/authenticators/:factorId/remove` | Review and verify removal                      |
 
-Each route has an authentication-state guard. Signed-out visitors go to `/login`;
-password-authenticated users must verify at `/2fa` or enroll at `/2fa/setup`.
-Recovery sessions must complete verification before `/reset-password`. Visiting a
-URL does not grant authentication or mark an email confirmed. Account settings
-require completed authentication, and public auth pages redirect active sessions
-to their appropriate next step. Browser navigation and refresh retain the route;
-QR setup secrets are kept only in memory, with unfinished enrollment cleanup after
-leaving or reloading. Authentication pages never load the financial workspace.
+Each route has an authentication-state guard. Signed-out visitors go to `/login`.
+Users with an enabled authenticator must verify at `/2fa`; users without one can
+continue with email/password. Recovery sessions require authenticator verification
+only when the account has enrolled 2FA, then continue to `/reset-password`.
+Visiting a URL does not grant authentication or mark an email confirmed.
 
-The workspace requires Supabase email/password authentication followed by Google
-Authenticator-compatible TOTP. First-time users must enroll and verify an
-Authenticator. Account settings allow backup authenticators; removal of the last
-verified factor is disabled in this interface. Sign-out returns to sign-in.
+Before first savings setup, `/2fa/setup` offers **Set up 2FA** and **Skip for now**.
+Skipping also works after generating an unverified QR code. The QR secret is
+removed from the screen; unfinished factors remain available for cleanup on a
+later enrollment visit. The skip preference is account-scoped in session storage,
+with an in-memory fallback when storage is blocked. It controls only the offer,
+never authentication or database access. Once savings are set up, returning users
+are not prompted to enroll again. Settings → Account & security offers **Enable
+2FA**; enrolled users can add backup authenticators. Removal of the last verified
+factor remains disabled in this interface.
+
+Savings setup is a separate required onboarding step at `/setup`. Until an
+account has a saved, non-demo workspace, direct app/account links return to setup.
+Only the branding, setup form, and sign-out action appear: no bottom tabs, Home,
+account shortcuts, connection shortcut, or example workspace. Loading and initial
+load errors also hide navigation. The six tabs appear only after setup saves
+successfully. Existing completed workspaces open normally. Authentication routes
+remain separate and never load financial data; account settings are available
+only after savings setup.
 
 There is no guest workspace, local-data import, or storage switch in the active
 interface. The app uses the existing account-owned Supabase workspace repository.
@@ -91,7 +102,7 @@ in the source, but the application workspace does not instantiate it. Existing
 browser data is not erased or uploaded.
 
 Each account owns one `public.workspaces` row containing JSON state, revision,
-and update time. The existing migration defines owner and `aal2` RLS checks,
+and update time. The initial migration defines owner and `aal2` RLS checks,
 restricted grants, a 5 MiB document limit, and revision incrementing. Saves use
 an expected revision; concurrent changes require review and retry. Failed saves
 retain drafts. Account data uses an account-scoped in-memory cache, with refresh
@@ -102,12 +113,23 @@ The user confirmed applying
 `supabase/migrations/20260907190000_account_workspaces.sql` manually on September
 8, 2026, and `supabase/migrations/20260909090000_recurring_workspace_format.sql`
 on September 9, 2026. Both scripts are supplied for manual execution; the agent
-does not run database migrations. Fresh projects require both scripts in order.
+does not run database migrations. Fresh projects require these scripts in order, followed by the optional-MFA migration below.
 The second script accepts workspace versions 1 and 2 and prevents downgrading a
 version 2 account from an older app tab. New cloud saves use version 2. Existing
-version 1 data remains readable; there is no bulk rewrite. Owner/AAL2 policies,
-column grants, the size limit, and revision checks are preserved. Live schema and
-policies have not been independently runtime-verified.
+version 1 data remains readable; there is no bulk rewrite. That format migration preserves the original owner/AAL2 policies, column grants,
+the size limit, and revision checks.
+
+Before deploying this onboarding update, manually run
+`supabase/migrations/20260910090000_optional_mfa.sql`. This changes workspace access
+to the [Supabase opt-in MFA model](https://supabase.com/docs/guides/auth/auth-mfa):
+account ownership is always required; `aal1` is allowed only when the account has
+no verified MFA factors, and `aal2` is accepted for verified sessions. A restrictive
+policy enforces this alongside the ownership policies. A private, fixed-search-path
+function checks only the caller's live factor records without granting clients
+access to the Auth tables. User-editable metadata and the onboarding skip preference
+are not used for authorization. No workspace rows, financial state, revision rules,
+or column grants are changed. The SQL is prepared but has not been executed or
+runtime-verified by the agent; application deployment must follow manual application.
 
 ## Development and configuration
 
@@ -134,14 +156,13 @@ configuration. Supabase's production Site URL is
 `https://saving-app-dusky.vercel.app/account` as the existing trusted email callback.
 This address remains compatible with already-sent links: once Supabase resolves
 the session, route guards dispatch to verification, enrollment, password reset,
-or authenticated account settings. No dashboard or SQL change is required for
-this routing release. Local or
+or authenticated account settings. The existing callback allow-list remains valid; the optional-MFA SQL described above is required for this onboarding release. Local or
 preview callbacks must be explicitly configured before enabling those flows.
 
 Gmail SMTP was configured previously in Supabase using the service Gmail account
 and an App Password entered directly by the user. Email delivery is not verified
 in this release. Recovery links enter through `/account`, then route to `/2fa`
-when verification is needed and `/reset-password` to choose a new password. Application-generated recovery codes are not
+when enrolled-factor verification is needed and `/reset-password` to choose a new password. Application-generated recovery codes are not
 provided; users can enroll a backup authenticator.
 
 ## Backups and updates
@@ -181,7 +202,7 @@ The build runs TypeScript and Vite. GitHub CI runs lint and build. Application,
 browser, email, and RLS tests are skipped for this implementation step at the user's
 request. Compilation and deployment readiness do not verify live user flows.
 Existing test commands remain in package.json; older local-workspace browser
-scenarios do not describe the new mandatory-auth interface.
+scenarios do not describe the current account-only interface.
 
 ## Project links and documentation
 
@@ -196,3 +217,12 @@ Vercel's SPA fallback supports direct feature/detail URLs. Handoff and design
 documents remain local under the existing Git ignore rules. Historical documents
 may describe optional sign-in or local workspaces; this README and the current
 project status supersede that behavior.
+
+## Publication handoff
+
+The user handles GitHub pushes and Vercel deployments. The agent prepares approved
+implementation changes and documentation, runs formatting/lint/build checks, and
+reports when they are ready. SQL is always supplied for the user to run manually.
+For this update: apply `20260910090000_optional_mfa.sql` first, then commit/push the
+changed source, README, and migration and deploy. The previous authentication-route
+release was deployed by the user; it is no longer blocked on the agent's network.

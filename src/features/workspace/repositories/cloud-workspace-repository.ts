@@ -21,8 +21,18 @@ export class CloudWorkspaceRepository implements WorkspaceRepository {
         'Your account changed. Sign in again before accessing this workspace.',
       );
     }
-    const assurance = await client.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (assurance.error || assurance.data.currentLevel !== 'aal2') {
+    const [assurance, factors] = await Promise.all([
+      client.auth.mfa.getAuthenticatorAssuranceLevel(),
+      client.auth.mfa.listFactors(),
+    ]);
+    if (assurance.error || factors.error) {
+      throw new Error('Could not check account security. Please retry.');
+    }
+    if (
+      assurance.data.currentLevel !== 'aal2' &&
+      (assurance.data.nextLevel === 'aal2' ||
+        factors.data.all.some((factor) => factor.status === 'verified'))
+    ) {
       throw new Error(
         'Verify your authenticator in Account before accessing cloud savings.',
       );

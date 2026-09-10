@@ -3,28 +3,20 @@ import {
   workspaceAuthenticated,
 } from '../auth/utils/auth-routing';
 import {
-  Link,
-  NavLink,
+  Navigate,
   Outlet,
-  useMatch,
   useNavigate,
   useLocation,
   matchPath,
 } from 'react-router';
-import {
-  Cloud,
-  House,
-  Wallet,
-  Receipt,
-  Flag,
-  Layers,
-  Settings2,
-} from 'lucide-react';
 import { SWRConfig } from 'swr';
 import { useAccountWorkspace } from './hooks/useAccountWorkspace';
 import { useAuthContext } from '../auth/hooks/useAuthContext';
+import { useAuthAction } from '../auth/hooks/useAuthAction';
+import { hasSkippedEnrollment } from '../auth/data/enrollment-choice';
 import { AuthGate } from '../auth/components/AuthGate';
 import { CloudWorkspaceSetup } from './components/CloudWorkspaceSetup';
+import { WorkspaceShell } from './components/WorkspaceShell';
 import { cloudWorkspaceEnabled } from '../../lib/supabase';
 import type { WorkspaceContext } from './types/workspace.type';
 import { routePaths } from '../../routes/routePaths';
@@ -41,162 +33,176 @@ function WorkspaceData() {
     commit,
     email,
   } = useAccountWorkspace();
+  const auth = useAuthContext();
+  const { busy, error: signOutError, act } = useAuthAction();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const setupRoute =
+    matchPath({ path: routePaths.setup, end: true }, pathname) !== null;
+  const setupComplete = Boolean(data && revision > 0 && !data.demo);
+  const loadError = error && (
+    <div role="alert" className="notice danger">
+      <div>
+        <strong>
+          {data ? 'Could not refresh your data' : 'Could not load your account'}
+        </strong>
+        <p>
+          {error instanceof Error ? error.message : 'Reconnect and try again.'}
+        </p>
+        <button
+          className="button secondary"
+          disabled={isValidating}
+          onClick={() => void mutate().catch(() => undefined)}
+        >
+          {isValidating ? 'Retrying…' : 'Retry connection'}
+        </button>
+      </div>
+    </div>
+  );
+
+  if (!data) {
+    return (
+      <WorkspaceShell>
+        {isLoading && (
+          <p role="status" className="panel">
+            Loading your account…
+          </p>
+        )}
+        {loadError}
+        {signOutError && (
+          <p role="alert" className="notice danger">
+            {signOutError}
+          </p>
+        )}
+        <button
+          className="button secondary"
+          disabled={busy}
+          onClick={() => void act(auth.signOut)}
+        >
+          Sign out on this device
+        </button>
+      </WorkspaceShell>
+    );
+  }
+
+  if (!setupComplete) {
+    if (!setupRoute) {
+      return (
+        <WorkspaceShell>
+          <Navigate to={routePaths.setup} replace />
+        </WorkspaceShell>
+      );
+    }
+    if (
+      !error &&
+      !auth.factors.some((factor) => factor.verified) &&
+      !hasSkippedEnrollment(auth.user?.id ?? '')
+    ) {
+      return (
+        <WorkspaceShell>
+          <Navigate to={routePaths.twoFactorSetup} replace />
+        </WorkspaceShell>
+      );
+    }
+
+    return (
+      <WorkspaceShell>
+        {loadError}
+        <CloudWorkspaceSetup
+          email={email}
+          save={async (next) => {
+            await commit(
+              () => next,
+              revision,
+              () => undefined,
+            );
+            navigate(routePaths.home, { replace: true });
+          }}
+        />
+      </WorkspaceShell>
+    );
+  }
+
+  if (setupRoute) {
+    return (
+      <WorkspaceShell>
+        <Navigate to={routePaths.home} replace />
+      </WorkspaceShell>
+    );
+  }
 
   return (
-    <>
-      {isLoading && !data && (
-        <p role="status" className="panel">
-          Loading your account…
-        </p>
-      )}
-      {error && (
-        <div role="alert" className="notice danger">
-          <div>
-            <strong>
-              {data
-                ? 'Could not refresh your data'
-                : 'Could not load your account'}
-            </strong>
-            <p>
-              {error instanceof Error
-                ? error.message
-                : 'Reconnect and try again.'}
-            </p>
-            <button
-              className="button secondary"
-              disabled={isValidating}
-              onClick={() => void mutate().catch(() => undefined)}
-            >
-              {isValidating ? 'Retrying…' : 'Retry connection'}
-            </button>
-          </div>
-        </div>
-      )}
-      {data &&
-        (revision === 0 ? (
-          <CloudWorkspaceSetup
-            email={email}
-            save={async (next) => {
-              await commit(
-                () => next,
-                0,
-                () => undefined,
-              );
-              navigate(routePaths.home, { replace: true });
-            }}
-          />
-        ) : (
-          <>
-            {data.demo && (
-              <aside className="demo-banner">
-                <div>
-                  <strong>Example workspace</strong>
-                  <p>Start with your own savings when you’re ready.</p>
-                </div>
-                <Link className="button secondary" to={routePaths.setup}>
-                  Set up savings
-                </Link>
-              </aside>
-            )}
-            <Outlet
-              context={
-                {
-                  state: data,
-                  revision,
-                  commit,
-                  destination: `Account for ${email}`,
-                  storage: 'cloud',
-                } satisfies WorkspaceContext
-              }
-            />
-          </>
-        ))}
-    </>
+    <WorkspaceShell navigation>
+      {loadError}
+      <Outlet
+        context={
+          {
+            state: data,
+            revision,
+            commit,
+            destination: `Account for ${email}`,
+            storage: 'cloud',
+          } satisfies WorkspaceContext
+        }
+      />
+    </WorkspaceShell>
   );
 }
 
 export function WorkspacePage() {
-  const accountRoute = useMatch('/account/*');
   const { pathname } = useLocation();
+  const auth = useAuthContext();
+  const { busy, error, act } = useAuthAction();
   const authenticationRoute = authenticationPaths.some(
     (path) => matchPath({ path, end: true }, pathname) !== null,
   );
-  const auth = useAuthContext();
-  const ready = workspaceAuthenticated(auth);
-  const showNavigation = ready && !authenticationRoute;
-  const items = [
-    [routePaths.home, House, 'Home'],
-    [routePaths.savings, Wallet, 'Saving'],
-    [routePaths.expenses, Receipt, 'Expenses'],
-    [routePaths.goals, Flag, 'Goals'],
-    [routePaths.plans, Layers, 'Plans'],
-    [routePaths.settings, Settings2, 'Settings'],
-  ] as const;
+
+  if (authenticationRoute) {
+    return (
+      <WorkspaceShell>
+        <Outlet />
+      </WorkspaceShell>
+    );
+  }
+  if (!workspaceAuthenticated(auth)) {
+    return (
+      <WorkspaceShell>
+        <AuthGate />
+      </WorkspaceShell>
+    );
+  }
+  if (!cloudWorkspaceEnabled) {
+    return (
+      <WorkspaceShell>
+        <section className="panel">
+          <h1>Account storage unavailable</h1>
+          <p>
+            Your account data is not available on this deployment. Please try
+            again later.
+          </p>
+          {error && (
+            <p role="alert" className="notice danger">
+              {error}
+            </p>
+          )}
+          <button
+            className="button secondary"
+            disabled={busy}
+            onClick={() => void act(auth.signOut)}
+          >
+            Sign out on this device
+          </button>
+        </section>
+      </WorkspaceShell>
+    );
+  }
 
   return (
-    <div className={`app-shell ${showNavigation ? '' : 'auth-shell'}`}>
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-      <header className="app-header">
-        <Link className="brand" to={ready ? routePaths.home : routePaths.login}>
-          <Wallet size={19} /> Saving
-        </Link>
-        {showNavigation && (
-          <Link
-            className="connection-link"
-            to={`${routePaths.settings}?section=data`}
-            aria-label="Data and connection"
-          >
-            <Cloud size={21} />
-          </Link>
-        )}
-      </header>
-      <main id="main-content">
-        <SWRConfig
-          key={`${auth.user?.id ?? 'signed-out'}:${auth.phase}`}
-          value={isolatedCache}
-        >
-          {accountRoute || authenticationRoute ? (
-            <Outlet />
-          ) : !ready ? (
-            <AuthGate />
-          ) : !cloudWorkspaceEnabled ? (
-            <section className="panel">
-              <h1>Account storage unavailable</h1>
-              <p>
-                Your account data is not available on this deployment. Please
-                try again later.
-              </p>
-              <Link to={routePaths.account}>Account settings</Link>
-            </section>
-          ) : (
-            <WorkspaceData />
-          )}
-        </SWRConfig>
-      </main>
-      {showNavigation && (
-        <nav className="bottom-navigation" aria-label="Main navigation">
-          {items.map(([to, Icon, label]) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === routePaths.home}
-              className={({ isActive }) =>
-                isActive || (to === routePaths.settings && accountRoute)
-                  ? 'active'
-                  : ''
-              }
-            >
-              <span>
-                <Icon size={21} aria-hidden="true" />
-              </span>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      )}
-    </div>
+    <SWRConfig
+      key={`${auth.user?.id ?? 'signed-out'}:${auth.phase}`}
+      value={isolatedCache}
+    >
+      <WorkspaceData />
+    </SWRConfig>
   );
 }

@@ -18,7 +18,11 @@ export function AccountPage() {
       description="Manage the authenticators that protect your account."
     >
       <p className="muted">{auth.user?.email}</p>
-      <p>Authenticator 2FA is enabled.</p>
+      <p>
+        {verified.length > 0
+          ? 'Authenticator 2FA is enabled.'
+          : 'Authenticator 2FA is not enabled. You can set it up whenever you are ready.'}
+      </p>
       {message && (
         <p className="notice" role="status">
           {message}
@@ -53,8 +57,15 @@ export function AccountPage() {
       </ul>
       <div className="stack-actions">
         {!busy && (
-          <Link className="button full-width" to={routePaths.addAuthenticator}>
-            Add backup authenticator
+          <Link
+            className="button full-width"
+            to={
+              verified.length > 0
+                ? routePaths.addAuthenticator
+                : routePaths.twoFactorSetup
+            }
+          >
+            {verified.length > 0 ? 'Add backup authenticator' : 'Enable 2FA'}
           </Link>
         )}
         <button

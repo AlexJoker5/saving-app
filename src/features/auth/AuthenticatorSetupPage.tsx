@@ -5,6 +5,7 @@ import { useAuthAction } from './hooks/useAuthAction';
 import type { AuthEnrollment } from './types/auth.type';
 import { AuthenticatorForm } from './components/AuthenticatorForm';
 import { AuthPageFrame } from './components/AuthPageFrame';
+import { skipEnrollment } from './data/enrollment-choice';
 import { routePaths } from '../../routes/routePaths';
 
 export function AuthenticatorSetupPage({
@@ -23,7 +24,11 @@ export function AuthenticatorSetupPage({
       title={
         backup ? 'Add a backup authenticator' : 'Set up Google Authenticator'
       }
-      description="Protect your account with a six-digit code from your authenticator app."
+      description={
+        backup
+          ? 'Protect your account with another authenticator.'
+          : 'Add an extra layer of security, or skip for now and enable it later in Settings.'
+      }
     >
       <p className="muted">{auth.user?.email}</p>
       {error && (
@@ -119,9 +124,24 @@ export function AuthenticatorSetupPage({
               })
             }
           >
-            {busy ? 'Please wait…' : 'Show setup QR code'}
+            {busy ? 'Please wait…' : 'Set up 2FA'}
           </button>
         </>
+      )}
+      {!backup && (
+        <button
+          className="button secondary full-width"
+          disabled={busy}
+          onClick={() => {
+            if (auth.user) {
+              skipEnrollment(auth.user.id);
+              setEnrollment(null);
+              navigate(routePaths.home, { replace: true });
+            }
+          }}
+        >
+          Skip for now
+        </button>
       )}
       {backup ? (
         !busy && (

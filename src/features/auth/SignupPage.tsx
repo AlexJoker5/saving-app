@@ -5,7 +5,7 @@ export function SignupPage() {
   return (
     <AuthPageFrame
       title="Create an account"
-      description="Start with your email and a password. After confirming your email, set up Google Authenticator to protect your account."
+      description="Start with your email and a password. After confirming your email, you can choose whether to enable Google Authenticator."
     >
       <CredentialsForm mode="sign-up" />
     </AuthPageFrame>
