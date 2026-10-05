@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      'cloudflare/supabase-proxy/worker.js',
       'node_modules/**',
       'artifacts/**',
       'coverage/**',
@@ -16,6 +17,11 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ['cloudflare/supabase-proxy/src/**/*.ts'],
+    languageOptions: { globals: globals.worker },
+    rules: { curly: ['error', 'all'] },
+  },
   {
     files: ['src/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
@@ -87,7 +93,12 @@ export default tseslint.config(
     rules: { 'no-restricted-imports': 'off' },
   },
   {
-    files: ['*.config.{js,ts}', 'tests/**/*.ts', 'scripts/**/*.mjs'],
+    files: [
+      '*.config.{js,ts}',
+      'tests/**/*.ts',
+      'scripts/**/*.mjs',
+      'cloudflare/supabase-proxy/scripts/**/*.mjs',
+    ],
     languageOptions: { globals: globals.node },
   },
 );

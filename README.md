@@ -140,9 +140,23 @@ npm ci
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` and set the Supabase URL and public publishable
-key. Never put a service-role key, SMTP password, or other secret in `VITE_`
+Copy `.env.example` to `.env.local` and set the original Supabase URL, public publishable
+key, and separate `VITE_SUPABASE_PROXY_URL`. Never put a service-role key, SMTP password, or other secret in `VITE_`
 variables. The Supabase SDK loads separately from the main application bundle.
+
+Saving has a dedicated Cloudflare Worker at
+`https://saving-app.apexstack-work.workers.dev`. Follow the tracked
+[Worker setup guide](cloudflare/supabase-proxy/README.md) to deploy the supplied
+standalone module, configure its upstream/allowed origins, verify reachability
+with VPN off, and set Vercel's new variable before deploying this frontend.
+Myanmar and unknown IP countries use Worker; other recognized countries try
+direct Supabase. Direct network failures switch to Worker and save an account-project
+scoped browser preference. Connection selection precedes SDK initialization and
+preserves the existing auth storage key. Reads can recover through Worker;
+financial saves are never automatically replayed after an uncertain response.
+The guide also supplies signup/recovery email template links through Worker.
+The proxy requires no new SQL; previous migrations still apply. Worker deployment,
+email-template changes and real network/Auth verification are performed separately.
 
 - `VITE_CLOUD_WORKSPACE_ENABLED=true` enables the existing account storage.
   If false, authenticated users see an unavailable screen; it does not enable
@@ -198,9 +212,11 @@ npm run lint
 VITE_CLOUD_WORKSPACE_ENABLED=true VITE_AUTH_EMAIL_ENABLED=true npm run build
 ```
 
-The build runs TypeScript and Vite. GitHub CI runs lint and build. Application,
-browser, email, and RLS tests are skipped for this implementation step at the user's
-request. Compilation and deployment readiness do not verify live user flows.
+The build runs TypeScript and Vite. GitHub CI runs lint, unit tests, Worker build,
+and application build. Connection/Worker unit tests cover routing, transport
+recovery, no automatic financial-save replay, allowed Auth/workspace routes,
+CORS, revision forwarding and restricted email redirects. These checks do not
+verify deployed geolocation, live email, MFA, RLS or Myanmar ISP reachability.
 Existing test commands remain in package.json; older local-workspace browser
 scenarios do not describe the current account-only interface.
 

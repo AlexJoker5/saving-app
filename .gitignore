@@ -45,6 +45,7 @@ Desktop.ini
 # Markdown documentation
 *.md
 !README.md
+!cloudflare/supabase-proxy/README.md
 
 # Documentation folder
 /docs/

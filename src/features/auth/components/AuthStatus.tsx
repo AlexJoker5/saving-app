@@ -1,6 +1,7 @@
 import { useAuthContext } from '../hooks/useAuthContext';
 import { useAuthAction } from '../hooks/useAuthAction';
 import { AuthPageFrame } from './AuthPageFrame';
+import { supabaseConfigurationError } from '../../../lib/supabase';
 
 export function AuthStatus() {
   const auth = useAuthContext();
@@ -18,7 +19,8 @@ export function AuthStatus() {
         <p role="status">Please wait…</p>
       ) : auth.phase === 'disabled' ? (
         <p className="notice">
-          Account sign-in is not configured for this deployment.
+          {supabaseConfigurationError ||
+            'Account sign-in is not configured for this deployment.'}
         </p>
       ) : (
         <>

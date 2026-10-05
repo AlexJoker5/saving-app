@@ -5,6 +5,7 @@ import type {
 
 import { moneyEntrySchema } from '../schema/saving.schema';
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Field } from '../../../components/ui/Field';
 import { FormActions } from '../../../components/ui/FormActions';
@@ -21,6 +22,9 @@ export function MoneyEntryForm({
   save,
   cancel,
 }: MoneyEntryFormProps) {
+  // A response can be lost after a cloud save succeeds. Keep this identity so
+  // an explicit retry cannot add a second copy of the same draft.
+  const [entryId] = useState(() => entry?.id ?? id());
   const {
     register,
     handleSubmit,
@@ -38,7 +42,7 @@ export function MoneyEntryForm({
     }
     await save({
       ...value,
-      id: entry?.id ?? id(),
+      id: entryId,
       kind,
     });
   });

@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { AppIcon } from './AppIcon';
 
 interface ModalProps {
+  dismissible?: boolean;
   presentation?: 'dialog' | 'form';
   title: string;
   description?: string;
@@ -10,12 +11,14 @@ interface ModalProps {
 }
 
 export function Modal({
+  dismissible = true,
   title,
   description,
   children,
   close,
   presentation = 'dialog',
 }: ModalProps) {
+  const titleId = useId();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
@@ -37,25 +40,29 @@ export function Modal({
       className={presentation === 'form' ? 'form-dialog' : 'sheet-dialog'}
       onCancel={(e) => {
         e.preventDefault();
-        close();
-      }}
-      onClick={(e) => {
-        if (e.target === ref.current) {
+        if (dismissible) {
           close();
         }
       }}
-      aria-labelledby="modal-title"
+      onClick={(e) => {
+        if (dismissible && e.target === ref.current) {
+          close();
+        }
+      }}
+      aria-labelledby={titleId}
     >
       <div className="modal-inner">
         <div className="section-head">
-          <h2 id="modal-title">{title}</h2>
-          <button
-            className="icon-button"
-            onClick={close}
-            aria-label="Close dialog"
-          >
-            <AppIcon name="x" />
-          </button>
+          <h2 id={titleId}>{title}</h2>
+          {dismissible && (
+            <button
+              className="icon-button"
+              onClick={close}
+              aria-label="Close dialog"
+            >
+              <AppIcon name="x" />
+            </button>
+          )}
         </div>
         {description && (
           <p className="muted modal-description">{description}</p>

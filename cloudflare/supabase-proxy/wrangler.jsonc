@@ -1,0 +1,9 @@
+{
+  "name": "saving-app",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-02",
+  "workers_dev": true,
+  // Keep SUPABASE_URL and ALLOWED_ORIGINS set through the dashboard on later CLI deployments.
+  "keep_vars": true,
+  "observability": { "enabled": false },
+}

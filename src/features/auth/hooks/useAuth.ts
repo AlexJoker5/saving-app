@@ -3,6 +3,7 @@ import {
   authConfigured,
   authEmailEnabled,
   getSupabase,
+  connectionRouter,
 } from '../../../lib/supabase';
 import type { AuthContextValue, AuthState } from '../types/auth.type';
 
@@ -77,7 +78,11 @@ export function useAuth(): AuthContextValue {
       if (current()) {
         setState((previous) => ({
           ...previous,
-          phase: 'error',
+          // The connection boundary blocks interaction while retaining open drafts.
+          phase:
+            previous.user && connectionRouter?.getSnapshot().phase !== 'ready'
+              ? previous.phase
+              : 'error',
           error:
             error instanceof Error
               ? error.message
